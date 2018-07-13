@@ -51,7 +51,7 @@ Overview
 
 .. end-badges
 
-A natural language generation app, for createing training data
+A natural language generation app, for creating RASA NLU training data
 
 * Free software: MIT license
 
