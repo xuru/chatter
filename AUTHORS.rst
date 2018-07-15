@@ -2,4 +2,4 @@
 Authors
 =======
 
-* Eric Plaster - https://blog.ionelmc.ro
+* Eric Plaster - https://github.com/xuru

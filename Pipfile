@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+click = "*"
+chatter = {editable = true, file = "file:///Users/ericplaster/rep/chatter"}
+Sphinx = ">=1.3"
+sphinx_rtd_theme = "*"
+pyyaml = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"

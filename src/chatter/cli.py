@@ -14,10 +14,44 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+import os
+
 import click
+from click import secho
+
+from chatter.intents import loader
+
+here = os.path.abspath(os.path.dirname(__file__))
 
 
-@click.command()
-@click.argument('names', nargs=-1)
-def main(names):
-    click.echo(repr(names))
+@click.group()
+@click.option('--verbose', '-v', count=True, help="The verbosity of the output")
+@click.pass_context
+def cli(ctx, verbose):
+    if not hasattr(ctx, 'obj') or (hasattr(ctx, 'obj') and ctx.obj is None):
+        ctx.obj = {}
+    ctx.obj['verbosity'] = verbose
+
+
+@cli.command('load')
+@click.argument('filename', type=click.Path(exists=True))
+def load_file(filename):
+    click.secho("Filename: {}".format(filename), fg='green')
+    intents = loader(filename)
+
+    for intent in intents.values():
+        secho(f"Intent: {intent.name}", fg="cyan")
+
+        click.secho(f"GRAMMERS:", fg="cyan")
+        for name, grammer in intent.grammers.items():
+            secho(f"  {name}: {grammer}", fg='green')
+
+        click.secho(f"ENTITIES:", fg="cyan")
+        for name, entity in intent.entities.items():
+            secho(f"  {name}: {entity}", fg='green')
+
+        click.secho(f"SENTENCE:", fg="cyan")
+
+        for _ in range(20):
+            secho(intent.common_example())
+

@@ -1,0 +1,25 @@
+language: "en"
+
+# format data structure: only rasa
+output_format: "rasa"
+
+# db or flat_file
+data_source: "flat_file"
+
+# which domains can be referenced
+domains:
+  all: true
+
+# how templates should be loaded and or parse
+templates:
+  all: true
+  # include specifics if not all
+  includes: "two, four, six"
+  # exclude specifics if not all
+  excludes: "one, three, five"
+
+# a common seed to generate consistent sets
+generation_seed: 10
+
+# if true, then each time the existing data will be removed
+overwrite: true

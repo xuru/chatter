@@ -26,7 +26,7 @@ setup(
     name='chatter',
     version='0.1.0',
     license='MIT license',
-    description='A natural language generation app, for createing training data',
+    description='A natural language generation app, for creating training data',
     long_description='%s\n%s' % (
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
@@ -75,7 +75,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'chatter = chatter.cli:main',
+            'chatter = chatter.cli:cli',
         ]
     },
 )
