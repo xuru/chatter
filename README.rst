@@ -70,7 +70,7 @@ https://chatter.readthedocs.io/
 Development
 ===========
 
-To run the all tests run::
+To run all tests, open a terminal, and type::
 
     tox
 
