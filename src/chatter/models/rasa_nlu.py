@@ -21,21 +21,27 @@ class RasaNLUIntent(IntentBase):
         self.entities_indexes_used = defaultdict(set)
         self.entities_used = []
 
-    def generate(self, num=1):
+    def to_json(self, num=1):
+        return json.dumps(self._generate(num), indent=2)
+
+    def _generate(self, num=1):
         examples = [self.common_example() for _ in range(num)]
-        return json.dumps(dict(
+        return dict(
             rasa_nlu_data=dict(
                 regex_features=self.regex_features(),
                 entity_synonyms=self.entity_synonyms(),
                 common_examples=examples
-            )), indent=2)
+            ))
 
-    def common_example(self):
+    def common_example(self, text=None):
         if not self.templates:
             raise RuntimeError("Need text templates to process Rasa examples!")
         self._reset()
 
-        text = self.process_text(self.choose_text())
+        if text is None:
+            text = self.choose_text()
+        text = self.process_text(text)
+
         common_example = dict(
             text=text,
             intent=self.name,
@@ -57,7 +63,7 @@ class RasaNLUIntent(IntentBase):
             dict(name="zipcode", pattern="[0-9]{5}")
         ]
 
-    def choose_text(self):
+    def choose_text(self) -> str:
         return random.choices(self.templates)[0]
 
     def get_placeholders(self, text):

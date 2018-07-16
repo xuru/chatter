@@ -1,0 +1,238 @@
+{
+  "rasa_nlu_data": {
+    "regex_features": [
+      {
+        "name": "zipcode",
+        "pattern": "[0-9]{5}"
+      }
+    ],
+    "entity_synonyms": [
+      {
+        "value": "chinese",
+        "synonyms": [
+          "chinese",
+          "chinese food",
+          "asian",
+          "asian food"
+        ]
+      },
+      {
+        "value": "nyc",
+        "synonyms": [
+          "New York",
+          "the big apple",
+          "New York city"
+        ]
+      },
+      {
+        "value": "San Francisco",
+        "synonyms": [
+          "san francisco",
+          "san francisco city"
+        ]
+      },
+      {
+        "value": "atlanta",
+        "synonyms": [
+          "atlanta",
+          "atlanta city"
+        ]
+      },
+      {
+        "value": "chinese",
+        "synonyms": [
+          "chinese",
+          "chinese food",
+          "asian",
+          "asian food"
+        ]
+      },
+      {
+        "value": "nyc",
+        "synonyms": [
+          "New York",
+          "the big apple",
+          "New York city"
+        ]
+      },
+      {
+        "value": "San Francisco",
+        "synonyms": [
+          "san francisco",
+          "san francisco city"
+        ]
+      },
+      {
+        "value": "atlanta",
+        "synonyms": [
+          "atlanta",
+          "atlanta city"
+        ]
+      }
+    ],
+    "common_examples": [
+      {
+        "text": "I'm in the North of town and I'd like soul food thanks!",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 8,
+            "end": 25,
+            "value": "the North of town",
+            "entity": "locations"
+          },
+          {
+            "start": 39,
+            "end": 48,
+            "value": "soul food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi I'm hungry for some american",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 24,
+            "end": 32,
+            "value": "american",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hello I feel like soul food around nyc?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 19,
+            "end": 28,
+            "value": "soul food",
+            "entity": "cuisine"
+          },
+          {
+            "start": 36,
+            "end": 39,
+            "value": "nyc",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hola I would like american by atlanta?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 19,
+            "end": 27,
+            "value": "american",
+            "entity": "cuisine"
+          },
+          {
+            "start": 31,
+            "end": 38,
+            "value": "atlanta",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hello I'm hungry for some american",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 27,
+            "end": 35,
+            "value": "american",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hola I'm hungry for some chinese",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 26,
+            "end": 33,
+            "value": "chinese",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "how are you I'm in nyc and how about american",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 20,
+            "end": 23,
+            "value": "nyc",
+            "entity": "locations"
+          },
+          {
+            "start": 38,
+            "end": 46,
+            "value": "american",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "I want soul food around the North of town?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 8,
+            "end": 17,
+            "value": "soul food",
+            "entity": "cuisine"
+          },
+          {
+            "start": 25,
+            "end": 42,
+            "value": "the North of town",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hello I'd like chinese by nyc?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 16,
+            "end": 23,
+            "value": "chinese",
+            "entity": "cuisine"
+          },
+          {
+            "start": 27,
+            "end": 30,
+            "value": "nyc",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "I would like chinese in the area of the North of town?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 14,
+            "end": 21,
+            "value": "chinese",
+            "entity": "cuisine"
+          },
+          {
+            "start": 37,
+            "end": 54,
+            "value": "the North of town",
+            "entity": "locations"
+          }
+        ]
+      }
+    ]
+  }
+}
