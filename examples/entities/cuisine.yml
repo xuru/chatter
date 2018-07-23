@@ -1,6 +1,8 @@
+# You can include other yaml files and the contents of those files will replace the include line, as tho it was
+# just cut and pasted in, so you need to make sure the syntax fits.
 cuisine:
-  - 'chinese'
-  - 'spanish'
-  - 'american'
+  - 'chinese {food?}'
+  - 'spanish {food?}'
+  - 'american {food?}'
   - 'soul food'
-  - 'italian'
+  - 'italian {food?}'

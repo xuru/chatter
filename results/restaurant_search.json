@@ -8,82 +8,312 @@
     ],
     "entity_synonyms": [
       {
-        "value": "chinese",
+        "value": "New York",
         "synonyms": [
-          "chinese",
-          "chinese food",
-          "asian",
-          "asian food"
-        ]
-      },
-      {
-        "value": "nyc",
-        "synonyms": [
-          "New York",
           "the big apple",
-          "New York city"
+          "New York city",
+          "New York proper"
         ]
       },
       {
         "value": "San Francisco",
         "synonyms": [
-          "san francisco",
-          "san francisco city"
+          "san francisco city",
+          "san francisco proper"
         ]
       },
       {
-        "value": "atlanta",
+        "value": "Atlanta",
         "synonyms": [
-          "atlanta",
-          "atlanta city"
-        ]
-      },
-      {
-        "value": "chinese",
-        "synonyms": [
-          "chinese",
-          "chinese food",
-          "asian",
-          "asian food"
-        ]
-      },
-      {
-        "value": "nyc",
-        "synonyms": [
-          "New York",
-          "the big apple",
-          "New York city"
-        ]
-      },
-      {
-        "value": "San Francisco",
-        "synonyms": [
-          "san francisco",
-          "san francisco city"
-        ]
-      },
-      {
-        "value": "atlanta",
-        "synonyms": [
-          "atlanta",
-          "atlanta city"
+          "atlanta city",
+          "atlanta proper"
         ]
       }
     ],
     "common_examples": [
       {
-        "text": "I'm in the North of town and I'd like soul food thanks!",
+        "text": "yo I'm hungry for some spanish food",
         "intent": "restaurant_search",
         "entities": [
           {
-            "start": 8,
-            "end": 25,
+            "start": 24,
+            "end": 36,
+            "value": "spanish food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi there where can I find american food by the big apple?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 27,
+            "end": 40,
+            "value": "american food",
+            "entity": "cuisine"
+          },
+          {
+            "start": 44,
+            "end": 57,
+            "value": "the big apple",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "yo I'm hungry for some spanish",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 24,
+            "end": 31,
+            "value": "spanish",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi there I'm in the North of town and I want american cuisine ok",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 17,
+            "end": 34,
             "value": "the North of town",
             "entity": "locations"
           },
           {
-            "start": 39,
-            "end": 48,
+            "start": 46,
+            "end": 62,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi there I'm hungry for some american food",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 30,
+            "end": 43,
+            "value": "american food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi there I'm hungry for some italian food",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 30,
+            "end": 42,
+            "value": "italian food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hello I would like chinese close to Atlanta?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 20,
+            "end": 27,
+            "value": "chinese",
+            "entity": "cuisine"
+          },
+          {
+            "start": 37,
+            "end": 44,
+            "value": "Atlanta",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "how are you I'm in atlanta proper and I would like spanish thanks!",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 20,
+            "end": 34,
+            "value": "atlanta proper",
+            "entity": "locations"
+          },
+          {
+            "start": 52,
+            "end": 59,
+            "value": "spanish",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hola where can I find american close to atlanta city?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 23,
+            "end": 31,
+            "value": "american",
+            "entity": "cuisine"
+          },
+          {
+            "start": 41,
+            "end": 53,
+            "value": "atlanta city",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hello where can I get spanish cuisine within the North of town?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 23,
+            "end": 38,
+            "value": "spanish cuisine",
+            "entity": "cuisine"
+          },
+          {
+            "start": 46,
+            "end": 63,
+            "value": "the North of town",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hola I want american cuisine by New York city?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 13,
+            "end": 29,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          },
+          {
+            "start": 33,
+            "end": 46,
+            "value": "New York city",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hola I'm in atlanta city and I want italian food cool",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 13,
+            "end": 25,
+            "value": "atlanta city",
+            "entity": "locations"
+          },
+          {
+            "start": 37,
+            "end": 49,
+            "value": "italian food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hello I'm hungry for some american food",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 27,
+            "end": 40,
+            "value": "american food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi there I would like american cuisine in the area of the big apple?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 23,
+            "end": 39,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          },
+          {
+            "start": 55,
+            "end": 68,
+            "value": "the big apple",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "how are you I'm in New York city and I would like american cool",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 20,
+            "end": 33,
+            "value": "New York city",
+            "entity": "locations"
+          },
+          {
+            "start": 51,
+            "end": 59,
+            "value": "american",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "yo where can I get american by New York?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 20,
+            "end": 28,
+            "value": "american",
+            "entity": "cuisine"
+          },
+          {
+            "start": 32,
+            "end": 40,
+            "value": "New York",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hola I'm hungry for some italian",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 26,
+            "end": 33,
+            "value": "italian",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "how are you I'm in atlanta proper and I feel like soul food thanks!",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 20,
+            "end": 34,
+            "value": "atlanta proper",
+            "entity": "locations"
+          },
+          {
+            "start": 51,
+            "end": 60,
             "value": "soul food",
             "entity": "cuisine"
           }
@@ -102,134 +332,236 @@
         ]
       },
       {
-        "text": "hello I feel like soul food around nyc?",
-        "intent": "restaurant_search",
-        "entities": [
-          {
-            "start": 19,
-            "end": 28,
-            "value": "soul food",
-            "entity": "cuisine"
-          },
-          {
-            "start": 36,
-            "end": 39,
-            "value": "nyc",
-            "entity": "locations"
-          }
-        ]
-      },
-      {
-        "text": "hola I would like american by atlanta?",
-        "intent": "restaurant_search",
-        "entities": [
-          {
-            "start": 19,
-            "end": 27,
-            "value": "american",
-            "entity": "cuisine"
-          },
-          {
-            "start": 31,
-            "end": 38,
-            "value": "atlanta",
-            "entity": "locations"
-          }
-        ]
-      },
-      {
-        "text": "hello I'm hungry for some american",
-        "intent": "restaurant_search",
-        "entities": [
-          {
-            "start": 27,
-            "end": 35,
-            "value": "american",
-            "entity": "cuisine"
-          }
-        ]
-      },
-      {
-        "text": "hola I'm hungry for some chinese",
-        "intent": "restaurant_search",
-        "entities": [
-          {
-            "start": 26,
-            "end": 33,
-            "value": "chinese",
-            "entity": "cuisine"
-          }
-        ]
-      },
-      {
-        "text": "how are you I'm in nyc and how about american",
+        "text": "hi where can I get american cuisine nearby san francisco city?",
         "intent": "restaurant_search",
         "entities": [
           {
             "start": 20,
-            "end": 23,
-            "value": "nyc",
+            "end": 36,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          },
+          {
+            "start": 44,
+            "end": 62,
+            "value": "san francisco city",
+            "entity": "locations"
+          }
+        ]
+      },
+      {
+        "text": "hi I'm in San Francisco and I would like soul food cool",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 11,
+            "end": 24,
+            "value": "San Francisco",
             "entity": "locations"
           },
           {
-            "start": 38,
-            "end": 46,
-            "value": "american",
+            "start": 42,
+            "end": 51,
+            "value": "soul food",
             "entity": "cuisine"
           }
         ]
       },
       {
-        "text": "I want soul food around the North of town?",
+        "text": "howdy I'm hungry for some spanish cuisine",
         "intent": "restaurant_search",
         "entities": [
           {
-            "start": 8,
-            "end": 17,
+            "start": 27,
+            "end": 42,
+            "value": "spanish cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "how are you I'm hungry for some spanish food",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 33,
+            "end": 45,
+            "value": "spanish food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "how are you I'm in the big apple and I could go for soul food ok",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 20,
+            "end": 33,
+            "value": "the big apple",
+            "entity": "locations"
+          },
+          {
+            "start": 53,
+            "end": 62,
             "value": "soul food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi there I could go for italian cuisine over by the North of town?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 25,
+            "end": 40,
+            "value": "italian cuisine",
             "entity": "cuisine"
           },
           {
-            "start": 25,
-            "end": 42,
+            "start": 49,
+            "end": 66,
             "value": "the North of town",
             "entity": "locations"
           }
         ]
       },
       {
-        "text": "hello I'd like chinese by nyc?",
+        "text": "hi I'm hungry for some american food",
         "intent": "restaurant_search",
         "entities": [
           {
-            "start": 16,
-            "end": 23,
+            "start": 24,
+            "end": 37,
+            "value": "american food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "how are you I'm hungry for some american cuisine",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 33,
+            "end": 49,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hola I'm hungry for some soul food",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 26,
+            "end": 35,
+            "value": "soul food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "yo I'm in New York proper and I'd like chinese thank you",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 11,
+            "end": 26,
+            "value": "New York proper",
+            "entity": "locations"
+          },
+          {
+            "start": 40,
+            "end": 47,
             "value": "chinese",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "yo I'd like chinese food around atlanta city?",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 13,
+            "end": 25,
+            "value": "chinese food",
             "entity": "cuisine"
           },
           {
-            "start": 27,
-            "end": 30,
-            "value": "nyc",
+            "start": 33,
+            "end": 45,
+            "value": "atlanta city",
             "entity": "locations"
           }
         ]
       },
       {
-        "text": "I would like chinese in the area of the North of town?",
+        "text": "hello I'm in san francisco proper and I feel like chinese cuisine cool",
         "intent": "restaurant_search",
         "entities": [
           {
             "start": 14,
-            "end": 21,
-            "value": "chinese",
-            "entity": "cuisine"
+            "end": 34,
+            "value": "san francisco proper",
+            "entity": "locations"
           },
           {
-            "start": 37,
-            "end": 54,
+            "start": 51,
+            "end": 66,
+            "value": "chinese cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hello I'm in san francisco city and where can I find american cuisine thanks!",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 14,
+            "end": 32,
+            "value": "san francisco city",
+            "entity": "locations"
+          },
+          {
+            "start": 54,
+            "end": 70,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hola I'm in the North of town and I would like american cuisine thanks!",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 13,
+            "end": 30,
             "value": "the North of town",
             "entity": "locations"
+          },
+          {
+            "start": 48,
+            "end": 64,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi I'm hungry for some american",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 0,
+            "end": 12,
+            "value": "chinese food",
+            "entity": "cuisine"
           }
         ]
       }

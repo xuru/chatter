@@ -2,7 +2,8 @@ import os
 
 import pytest
 
-from chatter.models import intents_loader, RasaNLUIntent
+from chatter.models import RasaNLUIntent
+from chatter.models.rasa_nlu import intents_loader
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 

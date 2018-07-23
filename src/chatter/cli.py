@@ -15,9 +15,14 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import os
+import sys
+
 import click
+import logging
 
 from chatter.commands.generate import generate
+
+logging.basicConfig(stream=sys.stdout, level=logging.WARNING, format='%(asctime)s %(message)s')
 
 here = os.path.abspath(os.path.dirname(__file__))
 

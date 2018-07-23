@@ -1,31 +1,71 @@
 import json
+import logging
 import random
-import re
 from collections import defaultdict
+from functools import reduce
+from typing import Union, Type
 
-from chatter.models.base import IntentBase
-from chatter.models.entity import Entity
+from chatter.parser import load_yaml
+from chatter.utils.regex import REPLACEMENT_PATTERN
+from chatter.models.entity import Grammar, Entity
+from chatter.models.placeholder import Placeholder
+from chatter.utils.digest import list_digest
 
-REPLACEMENT_PATTERN = re.compile(r'([{].+?[}])')
+logger = logging.getLogger(__name__)
 
 
-class RasaNLUIntent(IntentBase):
+class RasaBase:
+    def __init__(self, intent_name=None):
+        self.name = intent_name
+        self.domain = None
+        self.texts = []
+        self.grammars = {}
+        self.synonyms = defaultdict(list)
+
+    def load(self, intent_data):
+        self.domain = intent_data['domain']
+        self.texts = intent_data['text']
+
+        # grammars
+        self.process_data(Grammar, intent_data['grammars'])
+        self.process_data(Entity, intent_data['entities'])
+
+        # Update grammars and placeholders, now that we have them all
+        for obj in self.grammars.values():
+            obj.process_data(self.grammars)
+
+        # Get all the synonyms
+        for obj in self.grammars.values():
+            self.synonyms.update(obj.synonyms)
+
+        return self
+
+    def process_data(self, cls: Type[Union[Grammar, Entity]], data):
+        if isinstance(data, list):
+            for obj in data:
+                self.process_data(cls, obj)
+        else:
+            for name, value in data.items():
+                self.grammars[name] = cls(name, value)
+
+
+class RasaNLUIntent(RasaBase):
     def __init__(self, intent_name):
         super().__init__(intent_name)
-        self.grammers_indexes_used = defaultdict(set)
-        self.entities_indexes_used = defaultdict(set)
         self.entities_used = []
-
-    def _reset(self):
-        self.grammers_indexes_used = defaultdict(set)
-        self.entities_indexes_used = defaultdict(set)
-        self.entities_used = []
+        self.synonyms_used = {}
+        self.digests_used = []
 
     def to_json(self, num=1):
-        return json.dumps(self._generate(num), indent=2)
+        return json.dumps(self.generate(num), indent=2)
 
-    def _generate(self, num=1):
-        examples = [self.common_example() for _ in range(num)]
+    def generate(self, num=1):
+        self.validate_num(num)
+        if not self.texts:
+            raise RuntimeError("Need text templates to process Rasa examples!")
+
+        examples = self.generate_examples(num)
+
         return dict(
             rasa_nlu_data=dict(
                 regex_features=self.regex_features(),
@@ -33,10 +73,28 @@ class RasaNLUIntent(IntentBase):
                 common_examples=examples
             ))
 
+    def get_possible_combinations(self):
+        rv = {}
+        for text in self.texts:
+            placeholders = self.get_placeholders(text)
+            rv[text] = reduce(lambda x, y: x * y, [len(x.grammar.values) for x in placeholders])
+        return rv
+
+    def validate_num(self, num):
+        valid = True
+        for text, combos in self.get_possible_combinations().items():
+            if num > combos:
+                valid = False
+                break
+        if valid is False:
+            raise RuntimeError(f"Max number of combinations exceded. Max is {combos}")
+
+    def generate_examples(self, num=1):
+        return [self.common_example(self.choose_text()) for _ in range(num)]
+
     def common_example(self, text=None):
-        if not self.templates:
-            raise RuntimeError("Need text templates to process Rasa examples!")
-        self._reset()
+        # reset, to track what entities were used for only this example text
+        self.entities_used = []
 
         if text is None:
             text = self.choose_text()
@@ -45,17 +103,14 @@ class RasaNLUIntent(IntentBase):
         common_example = dict(
             text=text,
             intent=self.name,
-            entities=[e.to_dict() for e in self.entities_used])
+            entities=[e.to_example() for e in self.entities_used])
         return common_example
 
     def entity_synonyms(self):
+        # TODO
         rv = []
-        for entity_name, values in self.synonyms.items():
-            if isinstance(values, dict):
-                for name, value in values.items():
-                    rv.append(dict(value=name, synonyms=value))
-            else:
-                rv.append(dict(value=entity_name, synonyms=values))
+        for name, value in self.synonyms_used.items():
+            rv.append(dict(value=name, synonyms=value))
         return rv
 
     def regex_features(self):
@@ -64,60 +119,45 @@ class RasaNLUIntent(IntentBase):
         ]
 
     def choose_text(self) -> str:
-        return random.choices(self.templates)[0]
-
-    def get_placeholders(self, text):
-        rv = {}
-        for placeholder in  REPLACEMENT_PATTERN.findall(text):
-            name = placeholder.strip('{}')
-
-            # check if it's optional
-            if name.endswith('?'):
-                if random.randint(0, 1):
-                    rv[placeholder] = None
-                    continue
-                else:
-                    name = name.strip('?')
-            rv[placeholder] = name
-        return rv
-
-    def _get_next_index(self, indexes, indexes_used):
-        all_indexes = set(range(0, len(indexes)))
-        available_indexes = all_indexes - indexes_used
-        if not available_indexes:
-            # we used all of them, so pick randomly now
-            index = random.choice(list(all_indexes))
-        else:
-            index = random.choice(list(available_indexes))
-        return index
+        return random.choices(self.texts)[0]
 
     def process_text(self, text: str):
-        for placeholder, name in self.get_placeholders(text).items():
-            # if the placeholder is optional and is None, we skip it
-            if name is None:
-                text = text.replace(placeholder, '').strip()
-                continue
+        placeholders = self.get_placeholders(text)
 
-            if name in self.grammers:
-                text = self.process_grammer(name, placeholder, text)
-            elif name in self.entities:
-                text = self.process_entity(name, placeholder, text)
-            else:
-                raise RuntimeError(f"Unknown placeholder: {name}")
+        unique = False
+        while not unique:
+            for placeholder in placeholders:
+                text = placeholder.process(text)
+
+            combination = [x.grammar.value for x in placeholders]
+            digest = list_digest(combination)
+            if digest not in self.digests_used:
+                self.digests_used.append(digest)
+                unique = True
+
         return text
 
-    def process_grammer(self, name, placeholder, text):
-        # save off which index we used
-        index = self._get_next_index(self.grammers[name], self.grammers_indexes_used[name])
-        self.grammers_indexes_used[name].add(index)
-        repl = self.grammers[name][index]
-        return text.replace(placeholder, repl).strip()
+    def get_placeholders(self, text):
+        rv = []
+        for placeholder_text in REPLACEMENT_PATTERN.findall(text):
+            placeholder = Placeholder(placeholder_text)
 
-    def process_entity(self, name, placeholder, text):
-        index = self._get_next_index(self.entities[name], self.entities_indexes_used[name])
-        self.entities_indexes_used[name].add(index)
+            grammar = self.grammars[placeholder.name]
+            if isinstance(grammar, Entity):
+                self.entities_used.append(grammar)
 
-        repl = self.entities[name][index]
-        entity = Entity(name).update(repl, placeholder, text)
-        self.entities_used.append(entity)
-        return text.replace(placeholder, repl).strip()
+            for name in grammar.used_synonyms:
+                self.synonyms_used[name] = self.synonyms[name]
+            placeholder.grammar = grammar
+            rv.append(placeholder)
+        return rv
+
+
+def intents_loader(stream):
+    intents = {}
+    data = load_yaml(stream)
+
+    # usually only one intent perfile, but can do multiple
+    for intent_name, intent_data in data.items():
+        intents[intent_name] = RasaNLUIntent(intent_name).load(intent_data)
+    return intents

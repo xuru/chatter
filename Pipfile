@@ -11,6 +11,7 @@ sphinx_rtd_theme = "*"
 pyyaml = "*"
 pytest = "*"
 coverage = "*"
+tabulate = "*"
 
 [dev-packages]
 

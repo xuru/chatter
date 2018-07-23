@@ -1,18 +1,26 @@
 
+# NOTES:
+# Use single quoted strings and escape for single quote is ''
+# or use double quote
+# http://yaml.org/YAML_for_ruby.html#single-quoted_strings
+
+# TODO: make words optional without having to make them grammers (i.e. inline)
+
 restaurant_search:
   domain: food
   text:
     - '{greetings?} {obtain} {cuisine} {proximity} {locations}?'
-    - "{greetings?} I'm in {locations} and {obtain} {cuisine} {manners?}"
-    - "{greetings} I'm hungry for some {cuisine}"
+    - '{greetings?} I''m in {locations} and {obtain} {cuisine} {manners?}'
+    - '{greetings} I''m hungry for some {cuisine}'
 
-  grammers:
-    included:
-      - !include grammers/greetings.yml
-      - !include grammers/manners.yml
-      - !include grammers/obtain.yml
-    contents:
-      proximity:
+  grammars:
+    - !include grammars/greetings.yml
+    - !include grammars/manners.yml
+    - !include grammars/obtain.yml
+    - city:
+      - city
+      - proper
+    - proximity:
       - 'close to'
       - 'in the area of'
       - 'within'
@@ -23,26 +31,19 @@ restaurant_search:
       - 'by'
       - 'in'
       - 'over by'
+    - food:
+      - cuisine
+      - food
   entities:
-    included:
-      - !include entities/cuisine.yml
-    contents:
-      locations:
-        - nyc
-        - san francisco
-        - atlanta
-        - the North of town
-    synonyms:
-      included:
-        - !include entities/cuisine_syn.yml
-      contents:
-        nyc:
-          - 'New York'
-          - 'the big apple'
-          - 'New York city'
-        San Francisco:
-          - 'san francisco'
-          - 'san francisco city'
-        atlanta:
-          - 'atlanta'
-          - 'atlanta city'
+    - !include entities/cuisine.yml
+    - locations:
+      # If the list item is a dictionary, then it automatically is added to synonyms
+      - New York:
+        - 'the big apple'
+        - 'New York {city}'
+      - San Francisco:
+        # if there is a question mark, it means that word is optional
+        - 'san francisco {city}'
+      - Atlanta:
+        - 'atlanta {city}'
+      - 'the North of town'

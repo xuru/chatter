@@ -26,8 +26,20 @@ def remember_cwd():
         os.chdir(_curdir)
 
 
-def load_yaml(filename):
-    with open(filename) as fp:
+def load_yaml(stream):
+    if hasattr(stream, 'read'):
+        fp = stream
+    elif isinstance(stream, (str, bytes)):
+        fp = open(stream, 'r')
+    else:
+        raise RuntimeError("Stream must be a filename, or a file object")
+
+    try:
         with remember_cwd():
-            os.chdir(os.path.abspath(os.path.dirname(filename)))
-            return yaml.load(fp.read(), yaml.SafeLoader)
+            os.chdir(os.path.abspath(os.path.dirname(fp.name)))
+            data = yaml.load(fp.read(), yaml.SafeLoader)
+    finally:
+        fp.close()
+    return data
+
+

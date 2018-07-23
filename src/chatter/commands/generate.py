@@ -2,8 +2,9 @@ import os
 
 import click
 from click import secho
+from tabulate import tabulate
 
-from chatter.models import intents_loader
+from chatter.models.rasa_nlu import intents_loader
 
 
 @click.group()
@@ -32,7 +33,18 @@ def load_file(filename, outdir, num):
     intents = intents_loader(filename)
 
     for intent in intents.values():
+        try:
+            intent.validate_num(num)
+        except RuntimeError as error:
+            data = [(combos, text) for text, combos in intent.get_possible_combinations().items()]
+            secho(tabulate(data, headers=["Combinations", "Text template"]), fg="cyan")
+            secho("")
+
+            raise click.BadOptionUsage(str(error)) from error
+
         filename = os.path.join(outdir, intent.name + ".json")
-        secho(f"  Generating: {filename}", fg="green")
+        secho(f"  Generating: {filename}\n", fg="green")
         with open(filename, 'w+') as fp:
-            fp.write(intent.to_json(num))
+            text = intent.to_json(num)
+            secho(text, fg="green")
+            fp.write(text)
