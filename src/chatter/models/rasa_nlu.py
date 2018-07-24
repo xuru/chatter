@@ -23,7 +23,7 @@ class RasaBase:
         self.synonyms = defaultdict(list)
 
     def load(self, intent_data):
-        self.domain = intent_data['domain']
+        # self.domain = intent_data['domain']
         self.texts = intent_data['text']
 
         # grammars
