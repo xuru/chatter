@@ -3,7 +3,7 @@ import logging
 import random
 from collections import defaultdict
 from functools import reduce
-from typing import Union, Type
+from typing import Union, Type, List, Dict
 
 from chatter.parser import load_yaml
 from chatter.utils.regex import REPLACEMENT_PATTERN
@@ -59,6 +59,12 @@ class RasaNLUIntent(RasaBase):
     def to_json(self, num=1):
         return json.dumps(self.generate(num), indent=2)
 
+    def sentences(self, num=1):
+        self.validate_num(num)
+        if not self.texts:
+            raise RuntimeError("Need text templates to process Rasa examples!")
+        return [example['text'] for example in self.generate_examples(num)]
+
     def generate(self, num=1):
         self.validate_num(num)
         if not self.texts:
@@ -89,10 +95,10 @@ class RasaNLUIntent(RasaBase):
         if valid is False:
             raise RuntimeError(f"Max number of combinations exceded. Max is {combos}")
 
-    def generate_examples(self, num=1):
+    def generate_examples(self, num=1) -> List[dict]:
         return [self.common_example(self.choose_text()) for _ in range(num)]
 
-    def common_example(self, text=None):
+    def common_example(self, text=None) -> dict:
         # reset, to track what entities were used for only this example text
         self.entities_used = []
 
