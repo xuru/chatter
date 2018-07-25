@@ -1,15 +1,15 @@
+import copy
 import json
 import logging
 import random
 from collections import defaultdict
 from functools import reduce
-from typing import Union, Type, List, Dict
+from typing import Union, Type, List
 
-from chatter.parser import load_yaml
-from chatter.utils.regex import REPLACEMENT_PATTERN
+from chatter.models.common_example import CommonExample
 from chatter.models.entity import Grammar, Entity
-from chatter.models.placeholder import Placeholder
-from chatter.utils.digest import list_digest
+from chatter.parser import load_yaml
+from chatter.utils.digest import get_digest
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +21,14 @@ class RasaBase:
         self.texts = []
         self.grammars = {}
         self.synonyms = defaultdict(list)
+        self._texts_available = []
 
     def load(self, intent_data):
         # self.domain = intent_data['domain']
         self.texts = intent_data['text']
+        self._texts_available = copy.copy(self.texts)  # keep a copy for our book keeping
+        if not self.texts:
+            raise RuntimeError("Need text templates to process Rasa examples!")
 
         # grammars
         self.process_data(Grammar, intent_data['grammars'])
@@ -55,108 +59,80 @@ class RasaNLUIntent(RasaBase):
         self.entities_used = []
         self.synonyms_used = {}
         self.digests_used = []
+        self.used_combinations = defaultdict(list)
 
     def to_json(self, num=1):
         return json.dumps(self.generate(num), indent=2)
 
     def sentences(self, num=1):
         self.validate_num(num)
-        if not self.texts:
-            raise RuntimeError("Need text templates to process Rasa examples!")
-        return [example['text'] for example in self.generate_examples(num)]
+        return [example.text for example in self.generate_examples(num)]
 
     def generate(self, num=1):
         self.validate_num(num)
-        if not self.texts:
-            raise RuntimeError("Need text templates to process Rasa examples!")
 
+        # generate all examples
         examples = self.generate_examples(num)
+
+        # save off all synonyms we used
+        for example in examples:
+            self.synonyms_used.update(example.synonyms_used)
 
         return dict(
             rasa_nlu_data=dict(
-                regex_features=self.regex_features(),
+                regex_features=[dict(name="zipcode", pattern="[0-9]{5}")],
                 entity_synonyms=self.entity_synonyms(),
-                common_examples=examples
+                common_examples=[example.to_dict() for example in examples]
             ))
+
+    def generate_examples(self, num=1) -> List[CommonExample]:
+        examples = []
+        for index in range(num):
+            text = self.choose_text()
+            key = get_digest(text)
+
+            example = CommonExample(text, self)
+
+            # save off what combination we are going to use
+            combination = example.process(self.used_combinations[key])
+            self.used_combinations[key].append(combination)
+
+            examples.append(example)
+        return examples
+
+    def _get_num_combos_for_text(self, text):
+        example = CommonExample(text, self)
+        combos = example.combinations()
+        return reduce(lambda x, y: x * y, combos.values())
 
     def get_possible_combinations(self):
         rv = {}
         for text in self.texts:
-            placeholders = self.get_placeholders(text)
-            rv[text] = reduce(lambda x, y: x * y, [len(x.grammar.values) for x in placeholders])
+            rv[text] = self._get_num_combos_for_text(text)
         return rv
 
     def validate_num(self, num):
-        valid = True
-        for text, combos in self.get_possible_combinations().items():
-            if num > combos:
-                valid = False
-                break
-        if valid is False:
-            raise RuntimeError(f"Max number of combinations exceded. Max is {combos}")
-
-    def generate_examples(self, num=1) -> List[dict]:
-        return [self.common_example(self.choose_text()) for _ in range(num)]
-
-    def common_example(self, text=None) -> dict:
-        # reset, to track what entities were used for only this example text
-        self.entities_used = []
-
-        if text is None:
-            text = self.choose_text()
-        text = self.process_text(text)
-
-        common_example = dict(
-            text=text,
-            intent=self.name,
-            entities=[e.to_example() for e in self.entities_used])
-        return common_example
+        total = sum([self._get_num_combos_for_text(text) for text in self.texts])
+        if num > total:
+            raise RuntimeError(f"Max number of combinations exceded. Max is {total}")
 
     def entity_synonyms(self):
-        # TODO
         rv = []
         for name, value in self.synonyms_used.items():
             rv.append(dict(value=name, synonyms=value))
         return rv
 
-    def regex_features(self):
-        return [
-            dict(name="zipcode", pattern="[0-9]{5}")
-        ]
-
     def choose_text(self) -> str:
-        return random.choices(self.texts)[0]
-
-    def process_text(self, text: str):
-        placeholders = self.get_placeholders(text)
-
-        unique = False
-        while not unique:
-            for placeholder in placeholders:
-                text = placeholder.process(text)
-
-            combination = [x.grammar.value for x in placeholders]
-            digest = list_digest(combination)
-            if digest not in self.digests_used:
-                self.digests_used.append(digest)
-                unique = True
-
-        return text
-
-    def get_placeholders(self, text):
-        rv = []
-        for placeholder_text in REPLACEMENT_PATTERN.findall(text):
-            placeholder = Placeholder(placeholder_text)
-
-            grammar = self.grammars[placeholder.name]
-            if isinstance(grammar, Entity):
-                self.entities_used.append(grammar)
-
-            for name in grammar.used_synonyms:
-                self.synonyms_used[name] = self.synonyms[name]
-            placeholder.grammar = grammar
-            rv.append(placeholder)
-        return rv
+        found = False
+        while not found:
+            text = random.choice(self._texts_available)
+            key = get_digest(text)
+            if len(self.used_combinations[key]) >= self._get_num_combos_for_text(text):
+                self._texts_available.remove(text)
+                if not self._texts_available:
+                    raise RuntimeError("Exceeded number of available combinations for texts")
+            else:
+                return text
 
 
 def intents_loader(stream):

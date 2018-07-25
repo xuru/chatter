@@ -52,6 +52,23 @@ class EntityBase:
                 values.append(value)
         self.values = values
 
+    def choose(self, exclude: list=None):
+        if not exclude:
+            exclude = []
+
+        exclude_set = set(exclude)
+        available_set = set(self.values)
+
+        available = available_set - exclude_set
+        if not available:
+            return None
+
+        self.value = random.choice(list(available))
+        return self.value
+
+    def is_entity(self):
+        return isinstance(self, Entity)
+
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.name} {self.value} n_items={len(self.values)}"
 
@@ -63,7 +80,7 @@ class Entity(EntityBase):
         super().__init__(name, data)
 
     def update(self, placeholder_text: str, text: str):
-        # save off the entity structure
+        # TODO: Better tracking, and record already used values, etc
         self.value = random.choice(self.values)
         if self.value in self.synonyms:
             self.value = random.choice(self.synonyms[self.value] + [self.value])
