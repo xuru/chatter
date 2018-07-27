@@ -1,6 +1,6 @@
 import pytest
 
-from chatter.models.entity import Entity
+from chatter.entity import Entity
 
 
 testdata = [

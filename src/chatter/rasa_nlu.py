@@ -4,12 +4,11 @@ import logging
 import random
 from collections import defaultdict
 from functools import reduce
-from typing import Union, Type, List
+from typing import List
 
-from chatter.models.common_example import CommonExample
-from chatter.models.entity import Grammar, Entity
-from chatter.parser import load_yaml
-from chatter.utils.digest import get_digest
+from chatter.common_example import CommonExample
+from chatter.grammar import Grammar
+from chatter.utils.yaml import load_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -31,26 +30,22 @@ class RasaBase:
             raise RuntimeError("Need text templates to process Rasa examples!")
 
         # grammars
-        self.process_data(Grammar, intent_data['grammars'])
-        self.process_data(Entity, intent_data['entities'])
-
-        # Update grammars and placeholders, now that we have them all
-        for obj in self.grammars.values():
-            obj.process_data(self.grammars)
+        self.process_grammars(intent_data['grammars'])
+        self.process_grammars(intent_data['entities'], is_entity=True)
 
         # Get all the synonyms
-        for obj in self.grammars.values():
-            self.synonyms.update(obj.synonyms)
-
+        for grammar in self.grammars.values():
+            self.synonyms.update(grammar.synonyms)
         return self
 
-    def process_data(self, cls: Type[Union[Grammar, Entity]], data):
+    def process_grammars(self, data, is_entity=False):
         if isinstance(data, list):
             for obj in data:
-                self.process_data(cls, obj)
+                self.process_grammars(obj, is_entity)
         else:
             for name, value in data.items():
-                self.grammars[name] = cls(name, value)
+                self.grammars[name] = Grammar(name, self, is_entity)
+                self.grammars[name].load_data(value)
 
 
 class RasaNLUIntent(RasaBase):
@@ -61,7 +56,9 @@ class RasaNLUIntent(RasaBase):
         self.digests_used = []
         self.used_combinations = defaultdict(list)
 
-    def to_json(self, num=1):
+    def to_json(self, num=0):
+        if num == 0:
+            num = sum(self.get_possible_combinations().values())
         return json.dumps(self.generate(num), indent=2)
 
     def sentences(self, num=1):
@@ -85,49 +82,40 @@ class RasaNLUIntent(RasaBase):
                 common_examples=[example.to_dict() for example in examples]
             ))
 
-    def generate_examples(self, num=1) -> List[CommonExample]:
-        examples = []
-        for index in range(num):
-            text = self.choose_text()
-            key = get_digest(text)
-
-            example = CommonExample(text, self)
-
-            # save off what combination we are going to use
-            combination = example.process(self.used_combinations[key])
-            self.used_combinations[key].append(combination)
-
-            examples.append(example)
-        return examples
-
-    def _get_num_combos_for_text(self, text):
-        example = CommonExample(text, self)
-        combos = example.combinations()
-        return reduce(lambda x, y: x * y, combos.values())
-
-    def get_possible_combinations(self):
-        rv = {}
-        for text in self.texts:
-            rv[text] = self._get_num_combos_for_text(text)
-        return rv
-
-    def validate_num(self, num):
-        total = sum([self._get_num_combos_for_text(text) for text in self.texts])
-        if num > total:
-            raise RuntimeError(f"Max number of combinations exceded. Max is {total}")
-
     def entity_synonyms(self):
         rv = []
         for name, value in self.synonyms_used.items():
             rv.append(dict(value=name, synonyms=value))
         return rv
 
+    def generate_examples(self, num=1) -> List[CommonExample]:
+        rv = []
+        logger.debug(f"Generating {num} examples")
+        for num in range(num):
+            if num % 10:
+                logger.debug(f"Processed {num} examples")
+            example = CommonExample(self.choose_text(), self)
+            example.process()
+            rv.append(example)
+        return rv
+
+    def _get_num_combos_for_text(self, text):
+        combos = CommonExample(text, self).get_combinations()
+        return reduce(lambda x, y: x * y, combos.values())
+
+    def get_possible_combinations(self):
+        return {text: self._get_num_combos_for_text(text) for text in self.texts}
+
+    def validate_num(self, num):
+        total = sum(self.get_possible_combinations().values())
+        if num > total:
+            raise RuntimeError(f"Max number of combinations exceded. Max is {total}")
+
     def choose_text(self) -> str:
         found = False
         while not found:
             text = random.choice(self._texts_available)
-            key = get_digest(text)
-            if len(self.used_combinations[key]) >= self._get_num_combos_for_text(text):
+            if len(self.used_combinations[text]) >= self._get_num_combos_for_text(text):
                 self._texts_available.remove(text)
                 if not self._texts_available:
                     raise RuntimeError("Exceeded number of available combinations for texts")

@@ -40,10 +40,10 @@ restaurant_search:
       # If the list item is a dictionary, then it automatically is added to synonyms
       - New York:
         - 'the big apple'
-        - 'New York {city}'
+        - 'New York {city?}'
       - San Francisco:
         # if there is a question mark, it means that word is optional
-        - 'san francisco {city}'
+        - 'san francisco {city?}'
       - Atlanta:
-        - 'atlanta {city}'
+        - 'atlanta {city?}'
       - 'the North of town'

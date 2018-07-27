@@ -1,4 +1,5 @@
 import copy
+import itertools
 import logging
 import random
 
@@ -21,10 +22,8 @@ class Placeholder:
             self.optional = True
             self.ignore = random.choice([True, False])
 
-    def process(self, text):
-        self.grammar.update(self.placeholder_text, text)
-        text = text.replace(self.placeholder_text, self.grammar.value)
-        return text
+    def process(self, text, excludes=None):
+        return self.grammar.update(self.placeholder_text, text, excludes=excludes)
 
     def __repr__(self):
         rv = f"<Placeholder {self.name}>"
@@ -35,21 +34,28 @@ class Placeholder:
         return rv
 
 
-def all_placeholders(text, grammars):
+def get_all_placeholder_values(text, grammars):
     original_text = copy.copy(text)
     rv = []
-    for placeholder_text in REPLACEMENT_PATTERN.findall(text):
-        placeholder = Placeholder(placeholder_text)
-        if placeholder.optional:
-            text = original_text.replace(placeholder.placeholder_text, '')
-            rv.append(text.strip())
 
-        if placeholder.name in grammars:
-            for value in grammars[placeholder.name].values:
-                text = original_text.replace(placeholder.placeholder_text, value)
-                rv.append(text.strip())
-        else:
-            logger.warning(f"Unknown placeholder: {placeholder}")
+    placeholders = [Placeholder(text) for text in REPLACEMENT_PATTERN.findall(text)]
+    grammar_values = []
+    for p in placeholders:
+        values = copy.copy(grammars[p.name].choices)
+        if p.optional:
+            values.append('')
+        grammar_values.append(values)
+
+    # grammar_values = [grammars[p.name].choices for p in placeholders]
+
+    combinations = list(itertools.product(*grammar_values))
+
+    for options in combinations:
+        text = copy.copy(original_text)
+        for index, placeholder in enumerate(placeholders):
+            text = text.replace(placeholder.placeholder_text, options[index])
+        text = " ".join(text.split())
+        rv.append(text.strip())
     return rv
 
 

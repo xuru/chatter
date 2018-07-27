@@ -8,7 +8,7 @@ def get_digest(obj):
         return str_digest(obj)
     elif isinstance(obj, dict):
         return hash_digest(obj)
-    elif isinstance(obj, (list, set)):
+    elif isinstance(obj, (list, set, tuple)):
         return list_digest(list(obj))
 
 

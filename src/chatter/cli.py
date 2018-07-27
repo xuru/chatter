@@ -22,7 +22,7 @@ import logging
 
 from chatter.commands.generate import generate
 
-logging.basicConfig(stream=sys.stdout, level=logging.WARNING, format='%(asctime)s %(message)s')
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 here = os.path.abspath(os.path.dirname(__file__))
 

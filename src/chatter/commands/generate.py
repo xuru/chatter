@@ -4,7 +4,7 @@ import click
 from click import secho
 from tabulate import tabulate
 
-from chatter.models.rasa_nlu import intents_loader
+from chatter.rasa_nlu import intents_loader
 
 
 @click.group()
@@ -42,7 +42,7 @@ def load_file(filename, num):
 @rasa_group.command('nlu')
 @click.argument('filename', type=click.Path(exists=True))
 @click.argument('outdir', default='results', type=click.Path(dir_okay=True))
-@click.option('--num', default=1)
+@click.option('--num', default=0)
 def load_file(filename, outdir, num):
     click.secho(f"Generating RASA NLU data for {filename}", fg='green')
 
@@ -61,5 +61,7 @@ def load_file(filename, outdir, num):
 
         filename = os.path.join(outdir, intent.name + ".json")
         secho(f"  Generating: {filename}\n", fg="green")
-        with open(filename, 'w+') as fp:
-            fp.write(intent.to_json(num))
+        data = intent.to_json(num)
+        with open(filename, 'w') as fp:
+            fp.write(data)
+        secho(data, fg="cyan")
