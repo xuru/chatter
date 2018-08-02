@@ -1,46 +1,34 @@
-import contextlib
-import json
 import os
+from collections import OrderedDict
 
 import yaml
 
 
-def _include_yaml(loader, node):
-    """Load another YAML file and embeds it using the !include tag.
-    Example:
-        device_tracker: !include device_tracker.yaml
-    """
-    fname = os.path.join(os.path.dirname(loader.name), node.value)
-    with open(fname) as fp:
-        return yaml.load(fp.read(), yaml.SafeLoader)
+class YamlLoader(yaml.SafeLoader):
+
+    def __init__(self, stream):
+        self._root = os.path.dirname(stream.name)
+        super().__init__(stream)
+
+    def include(self, node):
+        filename = os.path.join(self._root, self.construct_scalar(node))
+        with open(filename, 'r') as f:
+            return yaml.load(f, YamlLoader)
 
 
-yaml.SafeLoader.add_constructor('!include', _include_yaml)
+def _ordered_dict(loader, node):
+    """Load YAML mappings into an ordered dict to preserve key order."""
+    loader.flatten_mapping(node)
+    return OrderedDict(loader.construct_pairs(node))
 
 
-@contextlib.contextmanager
-def remember_cwd():
-    _curdir = os.getcwd()
-    try:
-        yield
-    finally:
-        os.chdir(_curdir)
+YamlLoader.add_constructor('!include', YamlLoader.include)
+YamlLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _ordered_dict)
 
 
 def load_yaml(stream):
-    if hasattr(stream, 'read'):
-        fp = stream
-    elif isinstance(stream, (str, bytes)):
-        fp = open(stream, 'r')
-    else:
-        raise RuntimeError("Stream must be a filename, or a file object")
-
-    try:
-        with remember_cwd():
-            os.chdir(os.path.abspath(os.path.dirname(fp.name)))
-            data = yaml.load_all(fp.read(), yaml.SafeLoader)
-    finally:
-        fp.close()
+    with open(stream, 'r') as fp:
+        data = list(yaml.load_all(fp, YamlLoader))
     return data
 
 
