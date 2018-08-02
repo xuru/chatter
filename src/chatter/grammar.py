@@ -21,6 +21,7 @@ class Grammar:
     def __init__(self, name, intent=None, is_entity=False):
         self.name = name
         self.value = None  # The value chosen
+        self.entity_value = None  # value that is exported to the json file
         self.choices = []  # List of values to choose from
         self.synonyms = defaultdict(list)
         self.used_synonyms = []
@@ -38,36 +39,40 @@ class Grammar:
                         for x in value:
                             self.synonyms[name].extend(process_template(x, self.intent.grammars))
                     else:
-                        self.synonyms[name].extend(value)
+                        self.synonyms[name].extend(value.choices)
                     self.used_synonyms.append(name)
             elif isinstance(data, list):
                 [self.load_data(x) for x in data]
             elif isinstance(data, str):
                 if '{' in data:
                     dname = data.strip("{}?")
-                    values = process_template(data, self.intent.grammars)
-
                     if dname in self.intent.grammars:
-                        self.synonyms[dname] = self.intent.grammars[dname].choices
+                        self.load_data({dname: self.intent.grammars[dname]})
                     else:
+                        values = process_template(data, self.intent.grammars)
                         self.synonyms[self.name].extend(values)
-                    self.used_synonyms.append(self.name)
-                    self.choices.extend(values)
+                        self.choices.extend(values)
                 else:
                     self.choices.append(data)
             else:
                 raise RuntimeError(f"Unknown type: {data}")
 
-    def update(self, placeholder_text: str, text: str, value: int = None):
-        if value is None:
+    def update(self, placeholder_text: str, text: str, index: int = None):
+        if index is None:
             self.value = random.choice(self.choices)
         else:
-            self.value = self.choices[value]
+            self.value = self.choices[index]
 
-        if self.value in self.synonyms:
-            text = text.replace(placeholder_text, random.choice(self.synonyms[self.value]))
-        else:
-            text = text.replace(placeholder_text, self.value)
+        # check to see if we need a synonym
+        name = placeholder_text.strip('{}?')
+        if name in self.intent.grammars and self.value in self.intent.grammars[name].synonyms:
+            self.entity_value = self.value
+            self.value = random.choice(self.intent.grammars[name].synonyms[self.entity_value])
+
+        text = text.replace(placeholder_text, self.value, 1)
+
+        if self.entity_value is None:
+            self.entity_value = self.value
         return text
 
     def choose(self, exclude: list=None):

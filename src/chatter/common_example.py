@@ -61,8 +61,9 @@ class CommonExample:
 
                 # put it in the right list
                 if placeholder.grammar.is_entity:
-                    self.entities.append(Entity(placeholder.grammar))
+                    self.entities.append(Entity(placeholder.grammar, intent=self.parent))
                 else:
+                    placeholder.grammar.intent = self.parent
                     self.grammars.append(placeholder.grammar)
 
         self.picker = Combinations(self.grammar_values)
@@ -73,21 +74,19 @@ class CommonExample:
         return {g.name: len(g.choices) for g in self.all_grammars()}
 
     def process(self):
+        entity_index = 0
         for index, placeholder in enumerate(self.placeholders):
             grammar = placeholder.grammar
 
-            entities_map = {e.name: e for e in self.entities}
-
             if grammar.is_entity:
-                entity = entities_map[grammar.name]
+                entity = self.entities[entity_index]
                 self.text = entity.update(placeholder.placeholder_text, self.text, self.combination[index])
+
+                # we need to also keep track of the synonyms used...
+                self.synonyms_used.update({name: grammar.synonyms[name] for name in entity.used_synonyms})
+                entity_index += 1
             else:
                 self.text = grammar.update(placeholder.placeholder_text, self.text, self.combination[index])
-
-            # we need to also keep track of the synonyms used...
-            self.synonyms_used.update({
-                name: placeholder.grammar.synonyms[name] for name in placeholder.grammar.used_synonyms
-            })
 
     def get_placeholders(self) -> List[Placeholder]:
         rv = []
