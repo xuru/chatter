@@ -58,17 +58,6 @@ def load_nlu(filename, outdir, num):
 
 def load_file(filename, outdir, num):
     for intent in intents_loader(filename).values():
-        try:
-            intent.validate_num(num)
-        except RuntimeError as error:
-            smallest = min(intent.get_possible_combinations().values())
-            secho(f"WARNING: Unable to generate {num} combinations, setting to {smallest}", fg="red")
-
-            data = [(combinations, text) for text, combinations in intent.get_possible_combinations().items()]
-            secho(tabulate(data, headers=["Combinations", "Text template"]), fg="yellow")
-            secho("")
-            num = smallest
-
         filename = os.path.join(outdir, intent.name + ".json")
         secho(f"  Generating: {filename}\n", fg="green")
         data = intent.to_json(num)

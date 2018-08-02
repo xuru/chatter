@@ -75,8 +75,6 @@ class RasaNLUIntent(RasaBase):
         return [example.text for example in self.generate_examples(num)]
 
     def generate(self, num=1):
-        self.validate_num(num)
-
         # generate all examples
         examples = self.generate_examples(num)
 
@@ -86,7 +84,7 @@ class RasaNLUIntent(RasaBase):
 
         return dict(
             rasa_nlu_data=dict(
-                regex_features=[dict(name="zipcode", pattern="[0-9]{5}")],
+                regex_features=[],
                 entity_synonyms=self.entity_synonyms(),
                 common_examples=[example.to_dict() for example in examples]
             ))
@@ -106,7 +104,7 @@ class RasaNLUIntent(RasaBase):
             try:
                 example = CommonExample(self.choose_text(), self)
             except CombinationsExceededError as error:
-                logger.warning(f"Exceeded the number of combinations.  Limiting to {num}")
+                logger.warning(f"Exceeded the number of combinations.  Limiting to {num + 1}")
                 return rv
 
             example.process()
@@ -128,15 +126,12 @@ class RasaNLUIntent(RasaBase):
             raise RuntimeError(f"Max number of combinations exceded. Max is {total}")
 
     def choose_text(self) -> str:
-        found = False
-        while not found:
+        if not self._texts_available:
+            text = random.choice(self.texts)
+        else:
             text = random.choice(self._texts_available)
-            if len(self.used_combinations[text]) >= self._get_num_combos_for_text(text):
-                self._texts_available.remove(text)
-                if not self._texts_available:
-                    raise CombinationsExceededError("Exceeded number of available combinations for texts")
-            else:
-                return text
+            self._texts_available.remove(text)
+        return text
 
 
 def intents_loader(stream):
