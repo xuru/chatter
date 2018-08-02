@@ -3,6 +3,7 @@ import itertools
 import logging
 import random
 
+from chatter.exceptions import PlaceholderError
 from chatter.utils.regex import REPLACEMENT_PATTERN
 
 logger = logging.getLogger(__name__)
@@ -11,16 +12,10 @@ logger = logging.getLogger(__name__)
 class Placeholder:
     def __init__(self, text: str):
         self.placeholder_text = text.strip()
-        self.optional = False
-        self.ignore = False
-        self.name = text.strip('{}')
+        self.optional = '?' in text
+        self.ignore = False if self.optional is False else random.choice([True, False])
+        self.name = text.strip('{}?')
         self.grammar = None  # could be a Grammar or Entity
-
-        # check if it is optional
-        if self.name.endswith('?'):
-            self.name = self.name.strip('?')
-            self.optional = True
-            self.ignore = random.choice([True, False])
 
     def process(self, text, excludes=None):
         return self.grammar.update(self.placeholder_text, text, excludes=excludes)
@@ -41,7 +36,11 @@ def get_all_placeholder_values(text, grammars):
     placeholders = [Placeholder(text) for text in REPLACEMENT_PATTERN.findall(text)]
     grammar_values = []
     for p in placeholders:
-        values = copy.copy(grammars[p.name].choices)
+        try:
+            values = copy.copy(grammars[p.name].choices)
+        except KeyError:
+            raise PlaceholderError(f"Unable to find grammar for {p.name}")
+
         if p.optional:
             values.append('')
         grammar_values.append(values)

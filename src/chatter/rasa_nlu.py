@@ -7,6 +7,7 @@ from functools import reduce
 from typing import List
 
 from chatter.common_example import CommonExample
+from chatter.exceptions import CombinationsExceededError, PlaceholderError
 from chatter.grammar import Grammar
 from chatter.utils.yaml import load_yaml
 
@@ -21,6 +22,7 @@ class RasaBase:
         self.grammars = {}
         self.synonyms = defaultdict(list)
         self._texts_available = []
+        self.grammar_queue = []
 
     def load(self, intent_data):
         # self.domain = intent_data['domain']
@@ -31,6 +33,9 @@ class RasaBase:
 
         # grammars
         self.process_grammars(intent_data['grammars'])
+        while self.grammar_queue:
+            self.process_grammars(self.grammar_queue.pop())
+
         self.process_grammars(intent_data['entities'], is_entity=True)
 
         # Get all the synonyms
@@ -44,8 +49,12 @@ class RasaBase:
                 self.process_grammars(obj, is_entity)
         else:
             for name, value in data.items():
-                self.grammars[name] = Grammar(name, self, is_entity)
-                self.grammars[name].load_data(value)
+                name = name.strip('{}?')
+                try:
+                    self.grammars[name] = Grammar(name, self, is_entity)
+                    self.grammars[name].load_data(value)
+                except PlaceholderError:
+                    self.grammar_queue.append(data)
 
 
 class RasaNLUIntent(RasaBase):
@@ -94,14 +103,21 @@ class RasaNLUIntent(RasaBase):
         for num in range(num):
             if num % 10:
                 logger.debug(f"Processed {num} examples")
-            example = CommonExample(self.choose_text(), self)
+            try:
+                example = CommonExample(self.choose_text(), self)
+            except CombinationsExceededError as error:
+                logger.warning(f"Exceeded the number of combinations.  Limiting to {num}")
+                return rv
+
             example.process()
             rv.append(example)
         return rv
 
     def _get_num_combos_for_text(self, text):
         combos = CommonExample(text, self).get_combinations()
-        return reduce(lambda x, y: x * y, combos.values())
+        if combos:
+            return reduce(lambda x, y: x * y, combos.values())
+        return 1
 
     def get_possible_combinations(self):
         return {text: self._get_num_combos_for_text(text) for text in self.texts}
@@ -118,7 +134,7 @@ class RasaNLUIntent(RasaBase):
             if len(self.used_combinations[text]) >= self._get_num_combos_for_text(text):
                 self._texts_available.remove(text)
                 if not self._texts_available:
-                    raise RuntimeError("Exceeded number of available combinations for texts")
+                    raise CombinationsExceededError("Exceeded number of available combinations for texts")
             else:
                 return text
 

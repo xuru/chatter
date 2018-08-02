@@ -22,7 +22,7 @@ def rasa_group(ctx):
 @generate.command('sentences')
 @click.argument('filename', type=click.Path(exists=True))
 @click.option('--num', default=1)
-def load_file(filename, num):
+def load_sentences(filename, num):
     click.secho(f"Generating sentences for {filename}", fg='green')
 
     for intent in intents_loader(filename).values():
@@ -43,21 +43,32 @@ def load_file(filename, num):
 @click.argument('filename', type=click.Path(exists=True))
 @click.argument('outdir', default='results', type=click.Path(dir_okay=True))
 @click.option('--num', default=0)
-def load_file(filename, outdir, num):
+def load_nlu(filename, outdir, num):
     click.secho(f"Generating RASA NLU data for {filename}", fg='green')
 
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     outdir = os.path.abspath(outdir)
 
+    if os.path.isdir(filename):
+        load_from_dir(filename, outdir, num)
+    else:
+        load_file(filename, outdir, num)
+
+
+def load_file(filename, outdir, num):
+
     for intent in intents_loader(filename).values():
         try:
             intent.validate_num(num)
         except RuntimeError as error:
+            smallest = min(intent.get_possible_combinations().values())
+            secho(f"WARNING: Unable to generate {num} combinations, setting to {smallest}", fg="red")
+
             data = [(combinations, text) for text, combinations in intent.get_possible_combinations().items()]
-            secho(tabulate(data, headers=["Combinations", "Text template"]), fg="cyan")
+            secho(tabulate(data, headers=["Combinations", "Text template"]), fg="yellow")
             secho("")
-            raise click.BadOptionUsage(str(error)) from error
+            num = smallest
 
         filename = os.path.join(outdir, intent.name + ".json")
         secho(f"  Generating: {filename}\n", fg="green")
@@ -65,3 +76,11 @@ def load_file(filename, outdir, num):
         with open(filename, 'w') as fp:
             fp.write(data)
         secho(data, fg="cyan")
+
+
+def load_from_dir(dirname, outdir, num):
+    # traverse root directory, and list directories as dirs and files as files
+    for root, dirs, files in os.walk(dirname):
+        for file in files:
+            if file.endswith('.yml') or file.endswith('.yaml'):
+                load_file(os.path.join(root, file), outdir, num)
