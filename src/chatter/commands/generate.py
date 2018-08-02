@@ -57,7 +57,6 @@ def load_nlu(filename, outdir, num):
 
 
 def load_file(filename, outdir, num):
-
     for intent in intents_loader(filename).values():
         try:
             intent.validate_num(num)
@@ -81,6 +80,10 @@ def load_file(filename, outdir, num):
 def load_from_dir(dirname, outdir, num):
     # traverse root directory, and list directories as dirs and files as files
     for root, dirs, files in os.walk(dirname):
+        # TODO: For now skip these specific directories, but this should be gleaned from the includes in the yml files
+        if os.path.basename(root) in ['grammars', 'entities']:
+            continue
+
         for file in files:
             if file.endswith('.yml') or file.endswith('.yaml'):
                 load_file(os.path.join(root, file), outdir, num)
