@@ -38,7 +38,7 @@ def load_yaml(stream):
     try:
         with remember_cwd():
             os.chdir(os.path.abspath(os.path.dirname(fp.name)))
-            data = yaml.load(fp.read(), yaml.SafeLoader)
+            data = yaml.load_all(fp.read(), yaml.SafeLoader)
     finally:
         fp.close()
     return data

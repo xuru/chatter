@@ -125,9 +125,10 @@ class RasaNLUIntent(RasaBase):
 
 def intents_loader(stream):
     intents = {}
-    data = load_yaml(stream)
+    data_set = load_yaml(stream)
 
     # usually only one intent perfile, but can do multiple
-    for intent_name, intent_data in data.items():
-        intents[intent_name] = RasaNLUIntent(intent_name).load(intent_data)
+    for data in data_set:
+        for intent_name, intent_data in data.items():
+            intents[intent_name] = RasaNLUIntent(intent_name).load(intent_data)
     return intents

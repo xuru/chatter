@@ -9,11 +9,11 @@ chatter = {editable = true, file = "file:///Users/ericplaster/rep/chatter"}
 Sphinx = ">=1.3"
 sphinx_rtd_theme = "*"
 pyyaml = "*"
-pytest = "*"
-coverage = "*"
 tabulate = "*"
 
 [dev-packages]
+pytest = "*"
+coverage = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.6"
