@@ -67,7 +67,8 @@ class Grammar:
         name = placeholder_text.strip('{}?')
         if name in self.intent.grammars and self.value in self.intent.grammars[name].synonyms:
             self.entity_value = self.value
-            self.value = random.choice(self.intent.grammars[name].synonyms[self.entity_value])
+            if self.intent.grammars[name].synonyms[self.entity_value]:
+                self.value = random.choice(self.intent.grammars[name].synonyms[self.entity_value])
 
         text = text.replace(placeholder_text, self.value, 1)
 
