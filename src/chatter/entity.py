@@ -34,7 +34,7 @@ class Entity:
         return self.grammar.choices
 
     def update(self, placeholder_text: str, text: str, value: int = None):
-        self.start = text.find(placeholder_text) + 1
+        self.start = text.find(placeholder_text)
         text = self.grammar.update(placeholder_text, text, value)
         self.end = self.start + len(self.grammar.value)
         self.value = self.grammar.value
