@@ -26,7 +26,6 @@ def process_file(filename, outdir, num, skip_existing=False):
         if skip_existing and os.path.exists(filename):
             logger.info(f"Skipping {filename}...")
         else:
-            logger.info(f"Generating: {filename}")
             orig_filename = copy.copy(filename)
             index = 1
             while os.path.exists(filename):
@@ -34,6 +33,7 @@ def process_file(filename, outdir, num, skip_existing=False):
                 filename = "".join([basename, str(index), ext])
                 index += 1
 
+            logger.info(f"Generating: {filename}")
             with open(filename, 'w') as fp:
                 fp.write(data)
 
