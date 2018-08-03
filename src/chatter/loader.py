@@ -18,24 +18,27 @@ def intents_loader(stream):
     return intents
 
 
-def process_file(filename, outdir, num):
+def process_file(filename, outdir, num, skip_existing=True):
     for intent in intents_loader(filename).values():
         filename = os.path.join(outdir, intent.name + ".json")
         logger.info(f"Generating: {filename}")
         data = intent.to_json(num)
 
-        orig_filename = copy.copy(filename)
-        index = 1
-        while os.path.exists(filename):
-            basename, ext = os.path.splitext(orig_filename)
-            filename = "".join([basename, str(index), ext])
-            index += 1
+        if os.path.exists(filename):
+            logger.info(f"Skipping {filename}...")
+        else:
+            orig_filename = copy.copy(filename)
+            index = 1
+            while os.path.exists(filename):
+                basename, ext = os.path.splitext(orig_filename)
+                filename = "".join([basename, str(index), ext])
+                index += 1
 
-        with open(filename, 'w') as fp:
-            fp.write(data)
+            with open(filename, 'w') as fp:
+                fp.write(data)
 
 
-def process_from_dir(dirname, outdir, num):
+def process_from_dir(dirname, outdir, num, skip_existing=True):
     # traverse root directory, and list directories as dirs and files as files
     for root, dirs, files in os.walk(dirname):
         # TODO: For now skip these specific directories, but this should be gleaned from the includes in the yml files
@@ -44,4 +47,4 @@ def process_from_dir(dirname, outdir, num):
 
         for file in files:
             if file.endswith('.yml') or file.endswith('.yaml'):
-                process_file(os.path.join(root, file), outdir, num)
+                process_file(os.path.join(root, file), outdir, num, skip_existing)
