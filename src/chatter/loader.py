@@ -21,12 +21,12 @@ def intents_loader(stream):
 def process_file(filename, outdir, num, skip_existing=True):
     for intent in intents_loader(filename).values():
         filename = os.path.join(outdir, intent.name + ".json")
-        logger.info(f"Generating: {filename}")
         data = intent.to_json(num)
 
-        if os.path.exists(filename):
+        if skip_existing and os.path.exists(filename):
             logger.info(f"Skipping {filename}...")
         else:
+            logger.info(f"Generating: {filename}")
             orig_filename = copy.copy(filename)
             index = 1
             while os.path.exists(filename):
