@@ -9,7 +9,6 @@ from typing import List
 from chatter.common_example import CommonExample
 from chatter.exceptions import CombinationsExceededError, PlaceholderError
 from chatter.grammar import Grammar
-from chatter.utils.yaml import load_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +98,6 @@ class RasaNLUIntent(RasaBase):
         rv = []
         logger.debug(f"Generating {num} examples")
         for num in range(num):
-            if num % 10:
-                logger.debug(f"Processed {num} examples")
             try:
                 example = CommonExample(self.choose_text(), self)
             except CombinationsExceededError as error:
@@ -109,6 +106,7 @@ class RasaNLUIntent(RasaBase):
 
             example.process()
             rv.append(example)
+        logger.debug(f"Processed {len(rv)} examples")
         return rv
 
     def _get_num_combos_for_text(self, text):
@@ -132,14 +130,3 @@ class RasaNLUIntent(RasaBase):
             text = random.choice(self._texts_available)
             self._texts_available.remove(text)
         return text
-
-
-def intents_loader(stream):
-    intents = {}
-    data_set = load_yaml(stream)
-
-    # usually only one intent perfile, but can do multiple
-    for data in data_set:
-        for intent_name, intent_data in data.items():
-            intents[intent_name] = RasaNLUIntent(intent_name).load(intent_data)
-    return intents

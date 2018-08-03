@@ -3,7 +3,7 @@ import os
 import pytest
 
 from chatter.models import RasaNLUIntent
-from chatter.rasa_nlu import intents_loader
+from chatter.loader import intents_loader
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
