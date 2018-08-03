@@ -18,7 +18,7 @@ def intents_loader(stream):
     return intents
 
 
-def process_file(filename, outdir, num, skip_existing=True):
+def process_file(filename, outdir, num, skip_existing=False):
     for intent in intents_loader(filename).values():
         filename = os.path.join(outdir, intent.name + ".json")
         data = intent.to_json(num)
@@ -38,7 +38,7 @@ def process_file(filename, outdir, num, skip_existing=True):
                 fp.write(data)
 
 
-def process_from_dir(dirname, outdir, num, skip_existing=True):
+def process_from_dir(dirname, outdir, num, skip_existing=False):
     # traverse root directory, and list directories as dirs and files as files
     for root, dirs, files in os.walk(dirname):
         # TODO: For now skip these specific directories, but this should be gleaned from the includes in the yml files
