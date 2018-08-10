@@ -36,7 +36,6 @@ class TextParser:
         self.org_text = copy.copy(text)
         self._available_combinations = set()
         self._used_combinations = set()
-        self.text = text
 
         self.placeholders = [
             PlaceHolder(pattern) for pattern in REPLACEMENT_PATTERN.findall(text)
@@ -56,16 +55,16 @@ class TextParser:
         if self._used_combinations:
             return list(random.choice(list(self._used_combinations)))
 
-    def _fix_telemetry(self, p, value, synonym=None):
+    def _fix_telemetry(self, text, p, value, synonym=None):
         p.value = value
         if synonym:
             p.synonym = synonym
-        p.start = self.text.find(p.pattern) - 1
+        p.start = text.find(p.pattern)
         p.end = p.start + len(value)
         return p
 
     def process(self, combination: list, grammars: dict):
-        self.text = copy.copy(self.org_text)
+        text = copy.copy(self.org_text)
         for index, name in enumerate(self.names):
             choice_index = combination[index]
             p = self.placeholders[index]
@@ -78,12 +77,12 @@ class TextParser:
                 # TODO: we need a controlled way to do this
                 p.synonym = value
                 value = random.choice(grammars[name].synonyms[value])
-            self._fix_telemetry(p, value)
-            self.text = self.text.replace(p.pattern, value, 1)
+            self._fix_telemetry(text, p, value)
+            text = text.replace(p.pattern, value, 1)
+            # clear up any whitespace issues...
+            text = " ".join(text.split())
 
-        # clear up any whitespace issues...
-        self.text = " ".join(self.text.split())
-        return self.text
+        return text
 
     def _set_all_possible_combinations(self):
         values = []
@@ -94,8 +93,6 @@ class TextParser:
                 values.append(list(range(count)))
 
                 self.possible_combinations = self.possible_combinations * count
-
-            self._fix_telemetry(p, p.pattern)
 
         if values:
             available_combinations = list(itertools.product(*values))
