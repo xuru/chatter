@@ -1,99 +1,47 @@
-import copy
 import logging
-import random
-from typing import List
-
-from chatter.entity import Entity
-from chatter.placeholder import Placeholder
-from chatter.utils.regex import REPLACEMENT_PATTERN
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
 
-class Combinations:
-    def __init__(self, data):
-        self.list_of_lists = data
-        self.used_keys = []
-
-    def find_unused(self):
-        combo = [random.choice(l) for l in self.list_of_lists]
-        key = "".join(str(x) for x in combo)
-
-        while key in self.used_keys:
-            combo = [random.choice(l) for l in self.list_of_lists]
-            key = "".join(str(x) for x in combo)
-        self.used_keys.append(key)
-        return combo
-
-
 class CommonExample:
-    def __init__(self, template, parent=None):
-        self.template = template
-        self.text = copy.copy(template)
+    def __init__(self, parent=None):
         self.parent = parent
+        self.text = None
+
         self.entities = []
         self.grammars = []
-        self.synonyms_used = {}
+        self.synonyms_used = defaultdict(list)
         self.combination: list = []
         self.picker = None
         self.grammar_values = None
         self.placeholders = []
 
-        self.find_unused_combination()
-
-    def all_grammars(self) -> list:
-        """ To ensure we always combine them the same way. """
-        return self.grammars + self.entities
+    @property
+    def synonyms(self):
+        return {name: list(value) for name, value in self.synonyms_used.items()}
 
     def to_dict(self) -> dict:
         return dict(
             text=self.text,
             intent=self.parent.name,
-            entities=[e.to_example() for e in self.entities]
+            entities=self.entities
         )
 
-    def find_unused_combination(self):
-        if self.grammar_values is None:
-            self.grammar_values = []
-            for placeholder in self.get_placeholders():
-                self.placeholders.append(placeholder)
-                self.grammar_values.append(list(range(len(placeholder.grammar.choices))))
+    def process(self, parser, combination):
+        self.text = parser.process(combination, self.parent.grammars)
 
-                # put it in the right list
-                if placeholder.grammar.is_entity:
-                    self.entities.append(Entity(placeholder.grammar, intent=self.parent))
-                else:
-                    placeholder.grammar.intent = self.parent
-                    self.grammars.append(placeholder.grammar)
-
-        self.picker = Combinations(self.grammar_values)
-        self.combination = self.picker.find_unused()
-        self.parent.used_combinations[self.text].append(set(self.combination))
-
-    def get_combinations(self):
-        return {g.name: len(g.choices) for g in self.all_grammars()}
-
-    def process(self):
-        entity_index = 0
-        for index, placeholder in enumerate(self.placeholders):
-            grammar = placeholder.grammar
-
-            if grammar.is_entity:
-                entity = self.entities[entity_index]
-                self.text = entity.update(placeholder.placeholder_text, self.text, self.combination[index])
-
-                # we need to also keep track of the synonyms used...
-                self.synonyms_used.update({name: grammar.synonyms[name] for name in entity.used_synonyms})
-                entity_index += 1
-            else:
-                self.text = grammar.update(placeholder.placeholder_text, self.text, self.combination[index])
-
-    def get_placeholders(self) -> List[Placeholder]:
-        rv = []
-        for placeholder_text in REPLACEMENT_PATTERN.findall(self.template):
-            placeholder = Placeholder(placeholder_text)
-            if self.parent is not None:
-                grammar = self.parent.grammars[placeholder.name]
-                placeholder.grammar = grammar
-            rv.append(placeholder)
-        return rv
+        if combination:
+            for index, name in enumerate(parser.names):
+                grammar = self.parent.grammars[name]
+                if grammar.is_entity:
+                    placeholder = parser.placeholders[index]
+                    if placeholder.synonym:
+                        # instead of usng a set(), do this to preserve order
+                        for n in self.parent.grammars[placeholder.synonym].choices:
+                            if n not in self.synonyms_used[placeholder.synonym]:
+                                self.synonyms_used[placeholder.synonym].append(n)
+                    if placeholder.synonym or placeholder.value:
+                        self.entities.append(
+                            dict(start=placeholder.start, end=placeholder.end,
+                                 value=placeholder.synonym or placeholder.value, entity=name))

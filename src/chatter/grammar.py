@@ -1,6 +1,6 @@
 import logging
 import random
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from chatter.placeholder import get_all_placeholder_values
 
@@ -30,7 +30,7 @@ class Grammar:
 
     def load_data(self, data=None):
         if data is not None:
-            if isinstance(data, dict):
+            if isinstance(data, (OrderedDict, dict)):
                 for name, value in data.items():
                     # assuming value is a list
                     # {'New York': ['the big apple', 'New York {city?}']}
@@ -46,7 +46,7 @@ class Grammar:
             elif isinstance(data, str):
                 if '{' in data:
                     dname = data.strip("{}?")
-                    if dname in self.intent.grammars:
+                    if dname in self.intent.grammars and self.intent.grammars[dname].choices:
                         self.load_data({dname: self.intent.grammars[dname]})
                     else:
                         values = process_template(data, self.intent.grammars)

@@ -1,0 +1,8 @@
+food:
+  - cuisine
+  - food
+
+---
+city:
+  - city
+  - proper

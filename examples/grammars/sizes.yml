@@ -1,0 +1,16 @@
+- urgent:
+    - really
+    - pressing
+    - extremely
+    - seriously
+- large:
+    - "{urgent} hungry"
+    - starving
+    - clould eat a horse
+- medium:
+    - hungry
+    - eat
+- small:
+    - somewhat hungry for
+    - kindof hungry for
+

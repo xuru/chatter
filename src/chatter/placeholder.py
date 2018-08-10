@@ -39,7 +39,7 @@ def get_all_placeholder_values(text, grammars):
         try:
             values = copy.copy(grammars[p.name].choices)
         except KeyError:
-            raise PlaceholderError(f"Unable to find grammar for {p.name}")
+            raise PlaceholderError(placeholder_text=p.name)
 
         if p.optional:
             values.append('')

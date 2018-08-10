@@ -1,20 +1,26 @@
 import copy
 import logging
 import os
+
+from chatter.exceptions import PlaceholderError
 from chatter.rasa_nlu import RasaNLUIntent
 from chatter.utils.yaml import load_yaml
 
 logger = logging.getLogger(__name__)
 
 
-def intents_loader(stream):
+def intents_loader(filename):
     intents = {}
-    data_set = load_yaml(stream)
+    data_set = load_yaml(filename)
 
     # usually only one intent perfile, but can do multiple
     for data in data_set:
         for intent_name, intent_data in data.items():
-            intents[intent_name] = RasaNLUIntent(intent_name).load(intent_data)
+            try:
+                intents[intent_name] = RasaNLUIntent(intent_name).load(intent_data)
+            except PlaceholderError as err:
+                err.filename = filename
+                logger.error(f"{err}. Ensure that the grammar is defined or included.")
     return intents
 
 

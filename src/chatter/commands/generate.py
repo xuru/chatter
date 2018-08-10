@@ -1,5 +1,6 @@
 import os
 import shutil
+from collections import defaultdict
 
 import click
 from click import secho
@@ -22,8 +23,9 @@ def rasa_group(ctx):
 
 @generate.command('sentences')
 @click.argument('filename', type=click.Path(exists=True))
-@click.option('--num', default=1)
-def load_sentences(filename, num):
+@click.argument('outfile', default='sentences.txt', type=click.Path(exists=False))
+@click.option('--num', default=0)
+def load_sentences(filename, outfile, num):
     click.secho(f"Generating sentences for {filename}", fg='green')
 
     for intent in intents_loader(filename).values():
@@ -35,9 +37,25 @@ def load_sentences(filename, num):
             secho("")
             raise click.BadOptionUsage(str(error)) from error
 
+        if num == 0:
+            total = intent.get_total_possible_combinations()
+        else:
+            total = num
+
+        combinations = defaultdict(set)
+        with click.progressbar(intent.get_combinations(num),
+                               label="Calculating combinations...",
+                               length=total) as bar:
+            for text, seq in bar:
+                combinations[text].add(seq)
+
         secho(f"  Generating sentences...\n", fg="green")
-        for text in intent.sentences(num):
-            secho(text, fg="cyan")
+        with open(outfile, 'w') as fp:
+            with click.progressbar(intent.sentences(num, combinations),
+                                   label="Generating...",
+                                   length=total) as bar:
+                for text in bar:
+                    fp.write(text + "\n")
 
 
 @rasa_group.command('nlu')
