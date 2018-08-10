@@ -60,7 +60,7 @@ class TextParser:
         p.value = value
         if synonym:
             p.synonym = synonym
-        p.start = self.text.find(p.pattern) + 1
+        p.start = self.text.find(p.pattern) - 1
         p.end = p.start + len(value)
         return p
 
