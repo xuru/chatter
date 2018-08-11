@@ -1,27 +1,13 @@
 {
   "rasa_nlu_data": {
-    "regex_features": [
-      {
-        "name": "zipcode",
-        "pattern": "[0-9]{5}"
-      }
-    ],
+    "regex_features": [],
     "entity_synonyms": [
       {
-        "value": "cuisine",
+        "value": "Atlanta",
         "synonyms": [
-          "chinese cuisine",
-          "chinese food",
-          "chinese",
-          "spanish cuisine",
-          "spanish food",
-          "spanish",
-          "american cuisine",
-          "american food",
-          "american",
-          "italian cuisine",
-          "italian food",
-          "italian"
+          "atlanta city",
+          "atlanta proper",
+          "atlanta"
         ]
       },
       {
@@ -32,37 +18,21 @@
           "New York proper",
           "New York"
         ]
-      },
-      {
-        "value": "San Francisco",
-        "synonyms": [
-          "san francisco city",
-          "san francisco proper",
-          "san francisco"
-        ]
-      },
-      {
-        "value": "Atlanta",
-        "synonyms": [
-          "atlanta city",
-          "atlanta proper",
-          "atlanta"
-        ]
       }
     ],
     "common_examples": [
       {
-        "text": "hello where can I get american cuisine over by atlanta?",
+        "text": "how are you I would like spanish food by atlanta proper this is a priority sentence?",
         "intent": "restaurant_search",
         "entities": [
           {
-            "start": 23,
-            "end": 39,
-            "value": "american cuisine",
+            "start": 25,
+            "end": 37,
+            "value": "spanish food",
             "entity": "cuisine"
           },
           {
-            "start": 48,
+            "start": 41,
             "end": 55,
             "value": "Atlanta",
             "entity": "locations"
@@ -70,50 +40,128 @@
         ]
       },
       {
-        "text": "hi there I'm in the North of town and I feel like spanish thanks!",
+        "text": "how are you I'm clould eat a horse. I would like spanish thank you",
         "intent": "restaurant_search",
         "entities": [
           {
-            "start": 17,
-            "end": 34,
-            "value": "the North of town",
-            "entity": "locations"
-          },
-          {
-            "start": 51,
-            "end": 58,
+            "start": 49,
+            "end": 56,
             "value": "spanish",
             "entity": "cuisine"
           }
         ]
       },
       {
-        "text": "yo I'm hungry for some italian cuisine",
+        "text": "how are you I'm clould eat a horse. I would like chinese cuisine",
         "intent": "restaurant_search",
         "entities": [
           {
-            "start": 24,
-            "end": 39,
-            "value": "italian cuisine",
+            "start": 49,
+            "end": 64,
+            "value": "chinese cuisine",
             "entity": "cuisine"
           }
         ]
       },
       {
-        "text": "howdy I feel like soul food located at atlanta city?",
+        "text": "hola I'm extremely hungry. where can I find spanish food ok",
         "intent": "restaurant_search",
         "entities": [
           {
-            "start": 19,
-            "end": 28,
-            "value": "soul food",
+            "start": 44,
+            "end": 56,
+            "value": "spanish food",
             "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hola I'm seriously hungry. I'd like italian food",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 36,
+            "end": 48,
+            "value": "italian food",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hola I'm extremely hungry. how about american cuisine",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 37,
+            "end": 53,
+            "value": "american cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hi I'm starving. I feel like spanish cool",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 29,
+            "end": 36,
+            "value": "spanish",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "I'm in New York and I would like american",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 7,
+            "end": 15,
+            "value": "New York",
+            "entity": "locations"
           },
           {
-            "start": 40,
-            "end": 47,
-            "value": "Atlanta",
-            "entity": "locations"
+            "start": 33,
+            "end": 41,
+            "value": "american",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "yo I'm hungry for some chinese cuisine ok",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 23,
+            "end": 38,
+            "value": "chinese cuisine",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "yo I'm hungry. I would like american",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 28,
+            "end": 36,
+            "value": "american",
+            "entity": "cuisine"
+          }
+        ]
+      },
+      {
+        "text": "hello I'm hungry. where can I find american food",
+        "intent": "restaurant_search",
+        "entities": [
+          {
+            "start": 35,
+            "end": 48,
+            "value": "american food",
+            "entity": "cuisine"
           }
         ]
       }

@@ -9,12 +9,13 @@
 restaurant_search:
   domain: food
   text:
-    - "{greetings?} {obtain} {cuisine} {proximity} {locations}?"
+    - important:
+      - "{greetings?} {obtain} {cuisine} {proximity} {locations} this is a priority sentence?"
+      - "{greetings} I'm {>large}. {obtain} {cuisine} {manners?}"
     - "{greetings?} I'm in {locations} and {obtain} {cuisine} {manners?}"
     - "{greetings} I'm hungry for some {cuisine} {manners?}"
-    - "{greetings} I'm {large}. {obtain} {cuisine} {manners?}"
-    - "{greetings} I'm {medium}. {obtain} {cuisine} {manners?}"
-    - "{greetings} I'm {small}. {obtain} {cuisine} {manners?}"
+    - "{greetings} I'm {>medium}. {obtain} {cuisine} {manners?}"
+    - "{greetings} I'm {>small}. {obtain} {cuisine} {manners?}"
 
   grammars:
     - !include grammars/greetings.yml

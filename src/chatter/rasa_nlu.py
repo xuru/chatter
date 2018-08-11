@@ -3,12 +3,12 @@ import json
 import logging
 import queue
 import random
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from chatter.common_example import CommonExample
 from chatter.exceptions import CombinationsExceededError, PlaceholderError
 from chatter.grammar import Grammar
-from chatter.parser import TextParser
+from chatter.parser import TextParser, PATTERN_PRIORITY
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +19,13 @@ class Intent:
         self.domain = None
         self.texts = []
         self.text_parsers = []
+        self.parser_map = {}
         self.grammars = {}
         self.synonyms = defaultdict(list)
         self.grammar_queue = queue.Queue()
 
         self._texts_available = []
+        self._priority_texts = 0
 
     def get_possible_combinations(self):
         return {parser.text: parser.possible_combinations for parser in self.text_parsers}
@@ -31,19 +33,37 @@ class Intent:
     def get_total_possible_combinations(self):
         return sum(self.get_possible_combinations().values()) or 1
 
-    def get_combinations(self, num=1):
+    def get_combinations(self, num):
+        # ensure that priority grammars are moved up the list
+        for parser in self.text_parsers:
+            parser.ensure_priority_combinations(num)
+
+        index = 0
+        while index < num:
+            text = self.choose_text()
+            parser = self.parser_map[text]
+
+            # see if we have priority combinations
+            minimum_combos = parser.get_min_combinations() or 1
+            for _ in range(minimum_combos):
+                seq = self.get_parser_combination(parser)
+                logger.info(f"COMBO: {text}: {seq}")
+                index += 1
+                yield text, seq
+
+    def _get_minimum_num(self, num):
         if num == 0:
             num = self.get_total_possible_combinations()
 
-        for _ in range(num):
-            text = self.choose_text()
-            parser = self.text_parsers[self.texts.index(text)]
-            seq = self.get_parser_combination(parser)
-            yield text, seq
+        min_combos = sum([parser.get_min_combinations() for parser in self.text_parsers])
+        min_combos += self._priority_texts
+        if num < min_combos:
+            logger.warning(f"Number of generated examples increased due to priority grammars to {min_combos}")
+            return min_combos
+        return num
 
     def sentences(self, num=1, combinations=None):
-        if num == 0:
-            num = self.get_total_possible_combinations()
+        num = self._get_minimum_num(num)
 
         if combinations is None:
             combinations = defaultdict(set)
@@ -63,18 +83,27 @@ class Intent:
             seq = parser.get_unused_combination()
             return seq
         except CombinationsExceededError as error:
-            if self._texts_available:
+            if parser.org_text in self._texts_available:
                 self._texts_available.remove(parser.org_text)
             logger.warning(f"Exceeded combinations available for: {parser.org_text}")
             return parser.get_used_combination()
 
     def load(self, intent_data):
         # self.domain = intent_data['domain']
-        self.texts = intent_data['text']
-        self._texts_available = copy.copy(self.texts)  # keep a copy for our book keeping
-
-        if not self.texts:
+        texts = intent_data['text']
+        if not texts:
             raise RuntimeError("Need text templates to process Intents!")
+
+        for text in intent_data['text']:
+            if isinstance(text, str):
+                self._texts_available.append(copy.copy(text))
+            elif isinstance(text, (OrderedDict, dict)):
+                for name, value in text.items():
+                    if name == 'important':
+                        self._texts_available[0:0] += value
+                        self._priority_texts += 1
+            else:
+                raise RuntimeError(f"Unknown type in 'texts' section: {text}")
 
         # grammars
         self.process_grammars(intent_data['grammars'])
@@ -105,7 +134,11 @@ class Intent:
         for grammar in self.grammars.values():
             self.synonyms.update(grammar.synonyms)
 
-        self.text_parsers = [TextParser(text, self) for text in self.texts]
+        self.texts = copy.copy(self._texts_available)
+        for text in self._texts_available:
+            parser = TextParser(text, self)
+            self.text_parsers.append(parser)
+            self.parser_map[text] = parser
 
         return self
 
@@ -129,7 +162,7 @@ class Intent:
         if not self._texts_available:
             text = random.choice(self.texts)
         else:
-            text = random.choice(self._texts_available)
+            text = self._texts_available.pop(0)
         return text
 
 
@@ -144,9 +177,6 @@ class RasaNLUIntent(Intent):
         return f"<RasaNLUIntent {self.name} n_texts={len(self.texts)}>"
 
     def to_json(self, num=0):
-        if num == 0:
-            num = sum(self.get_possible_combinations().values())
-
         # generate all examples
         examples = self.examples(num)
 
@@ -170,13 +200,11 @@ class RasaNLUIntent(Intent):
             rv.append(dict(value=name, synonyms=value))
         return rv
 
-    def examples(self, num=1, combinations=None):
-        if num == 0:
-            num = sum(self.get_possible_combinations().values())
-
+    def examples(self, num=0, combinations=None):
+        num = self._get_minimum_num(num)
         if combinations is None:
             for text, seq in self.get_combinations(num):
-                parser = self.text_parsers[self.texts.index(text)]
+                parser = self.parser_map[text]
                 example = CommonExample(self)
                 example.process(parser, seq)
                 yield example
