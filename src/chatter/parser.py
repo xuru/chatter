@@ -1,10 +1,9 @@
 import copy
-import itertools
 import logging
 import random
-from random import SystemRandom
 
-from chatter.exceptions import CombinationsExceededError
+from chatter.combinator import Combinator
+from chatter.exceptions import PlaceholderError
 from chatter.utils.regex import REPLACEMENT_PATTERN
 
 PATTERN_RESERVED_CHARS = "{}>?"
@@ -14,128 +13,69 @@ PATTERN_PRIORITY = ">"
 logger = logging.getLogger(__name__)
 
 
-class PlaceHolder:
-    pattern: str = None
-    optional: bool = False
-    priority: bool = False
-    name: str = None
-    value: str = None
-    synonym: str = None
-    start: int = 0
-    end: int = 0
-
-    def __init__(self, pattern, value=None, synonym=None, start=0, end=0):
-        self.pattern = pattern
-        self.optional = PATTERN_OPTIONAL in pattern
-        self.priority = PATTERN_PRIORITY in pattern
-        self.name = pattern.strip(PATTERN_RESERVED_CHARS)
-        self.index_range = 0
-        self.value = value
-        self.synonym = synonym
-        self.start = start
-        self.end = end
-
-    def __repr__(self):
-        return f"<PlaceHolder {self.name}: {self.value} [{self.start}, {self.end}]>"
-
-
 class TextParser:
-    def __init__(self, text, parent=None):
-        self.parent = parent
-        self.possible_combinations = 0
-        self.org_text = copy.copy(text)
-        self._available_combinations = set()
-        self._used_combinations = set()
+    def __init__(self, text, grammars=None):
+        self.grammars = grammars
+        self.placeholders = []
+        self.names = []
+        self.text = copy.copy(text)
+        self.combinator = None
 
-        self.placeholders = [
-            PlaceHolder(pattern) for pattern in REPLACEMENT_PATTERN.findall(text)
-        ]
-        self.names = [p.name for p in self.placeholders]
-        self.reset_combinations()
+        self.setup_placeholders()
 
-    ################################################################################
-    # Combinations
-    ################################################################################
-    def reset_combinations(self):
-        values = []
-        self.possible_combinations = 1
-        for p in self.placeholders:
-            if self.parent.grammars is not None:
-                count = len(self.parent.grammars[p.name].choices)
-                p.index_range = count
-                values.append(list(range(count)))
+    @property
+    def has_priority_grammar(self):
+        return any([p.priority for p in self.placeholders])
 
-                self.possible_combinations = self.possible_combinations * count
+    @property
+    def possible_combinations(self):
+        """
+        Get the total number of possible combinations
 
-        if values:
-            available_combinations = list(itertools.product(*values))
-            cryptorand = SystemRandom()
-            cryptorand.shuffle(available_combinations)
-            self._available_combinations = set(available_combinations)
+        :return: The total
+        """
+        return self.combinator.count
 
-    def get_unused_combination(self):
-        if not self._available_combinations:
-            raise CombinationsExceededError()
+    def ensure_priority_combinations(self, num: int):
+        """
+        Ensure that ALL possible values of priority placeholders are represented by the first `num` combinations.
 
-        combination = self._available_combinations.pop()
-        self._used_combinations.add(combination)
-        return list(combination)
+        :param num: The number of combinations requested.
+        :return: None
+        """
+        self.combinator.ensure_priorities(num)
 
-    def get_used_combination(self):
-        if self._used_combinations:
-            return list(random.choice(list(self._used_combinations)))
+    def setup_placeholders(self):
+        """
+        Extract the placeholders from the text template, and initialize them with grammars if available
 
-    def get_min_combinations(self):
-        total = sum([p.index_range for p in self.placeholders if p.priority])
-        if not total:
-            return 0
-        return total
+        :return: None
+        """
+        from chatter.placeholder import PlaceHolder
 
-    def ensure_priority_combinations(self, num):
-        # range of priority grammar must be less then or equal to num
-        #
+        for pattern in REPLACEMENT_PATTERN.findall(self.text):
+            p = PlaceHolder(pattern)
 
-        available_combinations = list(self._available_combinations)
-        for priority_index, p in enumerate(self.placeholders):
-            if p.priority:
-                logger.info(f"Checking: {p.name}:{priority_index}")
+            if self.grammars is not None:
+                try:
+                    p.index_range = len(self.grammars[p.name].choices)
+                except:
+                    raise PlaceholderError()
+            self.names.append(p.name)
+            self.placeholders.append(p)
 
-                existing = set([x[priority_index] for x in available_combinations[:num]])
-                possible = set(range(p.index_range))
-                missing = possible - existing
-                logger.info(f"  Missing: {missing} == {possible} - {existing}")
-                if not missing:
-                    continue
-
-                move_list = []
-                table_index = len(available_combinations) - 1
-                while missing:
-                    if available_combinations[table_index][priority_index] in missing:
-                        move_list.append(available_combinations[table_index])
-                        missing.remove(available_combinations[table_index][priority_index])
-                    table_index -= 1
-                    if table_index <= 0:
-                        raise RuntimeError(f"Unable to find all combinations of priorty grammar {p.name}")
-
-                for combination in move_list:
-                    logger.info(f"Moving: {p.name}:{priority_index} - {combination}")
-                    available_combinations.insert(0, available_combinations.pop(available_combinations.index(combination)))
-
-                self._available_combinations = set(available_combinations)
-
-    ################################################################################
-    # Text processing
-    ################################################################################
-    def _fix_telemetry(self, text, p, value, synonym=None):
-        p.value = value
-        if synonym:
-            p.synonym = synonym
-        p.start = text.find(p.pattern)
-        p.end = p.start + len(value)
-        return p
+        self.combinator = Combinator(self.placeholders)
 
     def process(self, combination: list, grammars: dict):
-        text = copy.copy(self.org_text)
+        """
+        Given a dictionary of grammars, use the combination, and transform the text template and return it.
+
+        :param combination: A list of indexes into the grammar dictionary
+        :param grammars: A dictionary of grammars with the key being the name of the grammar, and the value is the
+         possible choices of that grammar.
+        :return: str - A new string with all placeholders replaced with grammars
+        """
+        text = copy.copy(self.text)
         for index, name in enumerate(self.names):
             choice_index = combination[index]
             p = self.placeholders[index]
@@ -148,9 +88,11 @@ class TextParser:
                 # TODO: we need a controlled way to do this
                 p.synonym = value
                 value = random.choice(grammars[name].synonyms[value])
-            self._fix_telemetry(text, p, value)
+            p.value = value
+            p.start = text.find(p.pattern)
+            p.end = p.start + len(value)
             text = text.replace(p.pattern, value, 1)
+
             # clear up any whitespace issues...
             text = " ".join(text.split())
-
         return text

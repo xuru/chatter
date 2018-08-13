@@ -38,7 +38,7 @@ def load_sentences(filename, outfile, num):
             raise click.BadOptionUsage(str(error)) from error
 
         if num == 0:
-            total = intent.get_total_possible_combinations()
+            total = intent.get_possible_combination_count()
         else:
             total = num
 

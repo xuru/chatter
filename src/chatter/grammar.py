@@ -2,7 +2,7 @@ import logging
 import random
 from collections import defaultdict, OrderedDict
 
-from chatter.placeholder import get_all_placeholder_values
+from chatter.placeholder import get_all_possible_values
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def process_template(template, grammars):
     values = []
     if '{' in template:
-        all_values = get_all_placeholder_values(template, grammars)
+        all_values = get_all_possible_values(template, grammars)
         values.extend(all_values)
     else:
         values.append(template)
