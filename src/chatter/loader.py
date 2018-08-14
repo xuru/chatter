@@ -18,7 +18,7 @@ class RasaNLULoader:
         self.replace_existing = True
         self.clean_directory = True
         self.test_ratio = test_ratio
-        self.intents: Dict[str, RasaNLUIntent] = {}
+        self.intents = []
 
     def _ensure_outdir(self, dirname):
         dirname = os.path.abspath(dirname)
@@ -32,7 +32,7 @@ class RasaNLULoader:
     def save(self, outdir, testing=False):
         self._ensure_outdir(outdir)
 
-        for intent in self.intents.values():
+        for intent in self.intents:
             filename = os.path.join(outdir, intent.name + ".json")
 
             data = intent.json(test=testing)
@@ -72,7 +72,7 @@ class RasaNLULoader:
                 try:
                     intent = RasaNLUIntent(intent_name).load(intent_data)
                     intent.process(self.num, self.test_ratio)
-                    self.intents[intent_name] = intent
+                    self.intents.append(intent)
                 except PlaceholderError as err:
                     err.filename = filename
                     logger.error(f"{err}. Ensure that the grammar is defined or included.")
