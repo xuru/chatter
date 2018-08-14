@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import math
 import queue
 import random
 from collections import defaultdict, OrderedDict
@@ -198,18 +199,36 @@ class RasaNLUIntent(Intent):
     def __init__(self, intent_name):
         super().__init__(intent_name)
         self.synonyms_used = {}
+        self.training_examples = []
+        self.testing_examples = []
 
-    def to_json(self, num=0):
-        examples = []
-        for example in self.examples(num):
+    def process(self, num=0, test_ratio=0):
+        num = self._get_minimum_num(num)
+        testing_count = math.ceil(num * (test_ratio / 100))
+        training_count = num - testing_count
+
+        if testing_count:
+            logger.info(
+                f"Processing {self.name} with {num} examples ({testing_count} testing)")
+
+        for index, example in enumerate(self.examples(num)):
             self.synonyms_used.update(example.synonyms_used)
-            examples.append(example.to_dict())
+            if index >= training_count:
+                self.testing_examples.append(example)
+            else:
+                self.training_examples.append(example)
+
+    def json(self, test=False):
+        if test is True:
+            example_dicts = [e.to_dict() for e in self.testing_examples]
+        else:
+            example_dicts = [e.to_dict() for e in self.training_examples]
 
         rv = dict(
             rasa_nlu_data=dict(
                 regex_features=[],
                 entity_synonyms=self.entity_synonyms(),
-                common_examples=examples
+                common_examples=example_dicts
             ))
         return json.dumps(rv, indent=2)
 

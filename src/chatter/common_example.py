@@ -38,17 +38,14 @@ class CommonExample:
                     placeholder = parser.placeholders[index]
                     if placeholder.synonym:
                         # instead of usng a set(), do this to preserve order
-                        try:
-                            if placeholder.synonym in grammar.synonyms:
-                                for n in grammar.synonyms[placeholder.synonym]:
-                                    if n not in self.synonyms_used[placeholder.synonym]:
-                                        self.synonyms_used[placeholder.synonym].append(n)
-                            elif placeholder.synonym in self.parent.grammars:
-                                for n in self.parent.grammars[placeholder.synonym].choices:
-                                    if n not in self.synonyms_used[placeholder.synonym]:
-                                        self.synonyms_used[placeholder.synonym].append(n)
-                        except Exception as err:
-                            print('bob')
+                        if placeholder.synonym in grammar.synonyms:
+                            for n in grammar.synonyms[placeholder.synonym]:
+                                if n not in self.synonyms_used[placeholder.synonym]:
+                                    self.synonyms_used[placeholder.synonym].append(n)
+                        elif placeholder.synonym in self.parent.grammars:
+                            for n in self.parent.grammars[placeholder.synonym].choices:
+                                if n not in self.synonyms_used[placeholder.synonym]:
+                                    self.synonyms_used[placeholder.synonym].append(n)
                     if placeholder.synonym or placeholder.value:
                         self.entities.append(
                             dict(start=placeholder.start, end=placeholder.end,
