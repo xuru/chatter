@@ -9,10 +9,10 @@ cryptorand = SystemRandom()
 
 class Combinator:
     def __init__(self, placeholders: list):
-        self.available = set()
-        self.used = set()
+        self.used = []
         self.count = 1
         self.placeholders = placeholders
+        self.comb_values = []
 
         self.reset_combinations()
 
@@ -25,16 +25,11 @@ class Combinator:
 
         :return: None
         """
-        values = []
+        self.comb_values = []
         self.count = 1
         for p in self.placeholders:
-            values.append(list(range(p.index_range)))
+            self.comb_values.append(list(range(p.index_range)))
             self.count = self.count * p.index_range
-
-        if values:
-            available_combinations = list(itertools.product(*values))
-            cryptorand.shuffle(available_combinations)
-            self.available = set(available_combinations)
 
     def get(self):
         """
@@ -42,10 +37,23 @@ class Combinator:
 
         :return: list - The list of combination indexes
         """
-        while self.available:
-            combination = self.available.pop()
-            self.used.add(combination)
-            yield list(combination)
+        if len(self.used) == self.count:
+            return None
+
+        miss_count = 0
+        while True:
+            combination = [random.randint(0, p.index_range - 1) for p in self.placeholders]
+            key = tuple(combination)
+            if key not in self.used:
+                self.used.append(key)
+                return combination
+            else:
+                miss_count += 1
+                if miss_count >= 3:
+                    for combo in itertools.product(*self.comb_values):
+                        if combo not in self.used:
+                            self.used.append(combo)
+                            return combo
 
     def get_used(self):
         """
@@ -54,7 +62,8 @@ class Combinator:
         :return: list - The list of combination indexes
         """
         if self.used:
-            return list(random.choice(list(self.used)))
+            key = random.choice(self.used)
+            return list(key)
 
     def get_min_combinations(self):
         """
@@ -74,29 +83,30 @@ class Combinator:
         :param num: The number of combinations requested.
         :return: None
         """
-        available_combinations = list(self.available)
-        for priority_index, p in enumerate(self.placeholders):
-            if p.priority:
-
-                existing = set([x[priority_index] for x in available_combinations[:num]])
-                possible = set(range(p.index_range))
-                missing = possible - existing
-                logger.debug(f"  Missing: {missing} == {possible} - {existing}")
-                if not missing:
-                    continue
-
-                move_list = []
-                table_index = len(available_combinations) - 1
-                while missing:
-                    if available_combinations[table_index][priority_index] in missing:
-                        move_list.append(available_combinations[table_index])
-                        missing.remove(available_combinations[table_index][priority_index])
-                    table_index -= 1
-                    if table_index <= 0:
-                        raise RuntimeError(f"Unable to find all combinations of priorty grammar {p.name}")
-
-                for combination in move_list:
-                    logger.debug(f"Moving: {p.name}:{priority_index} - {combination}")
-                    available_combinations.insert(0, available_combinations.pop(available_combinations.index(combination)))
-
-                self.available = set(available_combinations)
+        # available_combinations = self.available
+        # for priority_index, p in enumerate(self.placeholders):
+        #     if p.priority:
+        #
+        #         existing = set([x[priority_index] for x in available_combinations[:num]])
+        #         possible = set(range(p.index_range))
+        #         missing = possible - existing
+        #         logger.debug(f"  Missing: {missing} == {possible} - {existing}")
+        #         if not missing:
+        #             continue
+        #
+        #         move_list = []
+        #         table_index = len(available_combinations) - 1
+        #         while missing:
+        #             if available_combinations[table_index][priority_index] in missing:
+        #                 move_list.append(available_combinations[table_index])
+        #                 missing.remove(available_combinations[table_index][priority_index])
+        #             table_index -= 1
+        #             if table_index <= 0:
+        #                 raise RuntimeError(f"Unable to find all combinations of priorty grammar {p.name}")
+        #
+        #         for combination in move_list:
+        #             logger.debug(f"Moving: {p.name}:{priority_index} - {combination}")
+        #             available_combinations.insert(0, available_combinations.pop(available_combinations.index(combination)))
+        #
+        #         self.available = available_combinations
+        pass

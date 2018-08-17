@@ -76,6 +76,7 @@ class Intent:
         self.text_parsers: List[TextParser] = []
         self.parser_map = {}
         self.grammars = {}
+        self.entities = {}
         self.synonyms = defaultdict(list)
         self.grammar_queue = queue.Queue()
 
@@ -89,11 +90,11 @@ class Intent:
         return sum(self.get_possible_combinations().values()) or 1
 
     def get_parser_combination(self, parser: TextParser):
-        try:
-            return next(parser.combinator.get())
-        except StopIteration:
+        rv = parser.combinator.get()
+        if rv is None:
             self.texts.invalidate_text(parser.text)
             return parser.combinator.get_used()
+        return rv
 
     def get_combinations(self, num):
         # ensure that priority grammars are moved up the list
@@ -132,22 +133,14 @@ class Intent:
             else:
                 yield text
 
-    def load(self, intent_data):
-        # self.domain = intent_data['domain']
-        self.texts = Texts()
-        self.texts.load(intent_data['text'])
-
-        # grammars
-        self.process_grammars(intent_data['grammars'])
-        self.process_grammars(intent_data['entities'], is_entity=True)
-
+    def _run_down_queue(self, is_entity=False):
         retries = {}
         # process grammars that were probably not loaded in time
         while not self.grammar_queue.empty():
             data = None
             try:
                 data = self.grammar_queue.get()
-                self.process_grammars(data, raise_on_error=True)
+                self.process_grammars(data, is_entity=is_entity, raise_on_error=True)
             except PlaceholderError as err:
                 if self.grammar_queue.empty():
                     # exhausted all options...
@@ -161,6 +154,17 @@ class Intent:
                         if retries[n] > 3:
                             raise err
                     self.grammar_queue.put(data)
+
+    def load(self, intent_data):
+        # self.domain = intent_data['domain']
+        self.texts = Texts()
+        self.texts.load(intent_data['text'])
+
+        # grammars
+        self.process_grammars(intent_data['grammars'])
+        self._run_down_queue()
+        self.process_grammars(intent_data['entities'], is_entity=True)
+        self._run_down_queue(is_entity=True)
 
         # Get all the synonyms
         for grammar in self.grammars.values():
@@ -180,8 +184,12 @@ class Intent:
             for name, value in data.items():
                 name = name.strip(PATTERN_RESERVED_CHARS)
                 try:
+                    # TODO: Entities with the same name will overwrite the grammar...
                     self.grammars[name] = Grammar(name, self, is_entity)
                     self.grammars[name].load_data(value)
+
+                    if is_entity:
+                        self.entities[name] = self.grammars[name]
                 except PlaceholderError as err:
                     if raise_on_error:
                         err.grammar_name = name

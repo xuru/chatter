@@ -2,6 +2,7 @@ import logging
 import random
 from collections import defaultdict, OrderedDict
 
+from chatter.parser import PATTERN_RESERVED_CHARS
 from chatter.placeholder import get_all_possible_values
 
 logger = logging.getLogger(__name__)
@@ -34,18 +35,19 @@ class Grammar:
                 for name, value in data.items():
                     # assuming value is a list
                     # {'New York': ['the big apple', 'New York {city?}']}
-                    self.choices.append(name)
                     if isinstance(value, list):
                         for x in value:
                             self.synonyms[name].extend(process_template(x, self.intent.grammars))
                     else:
                         self.synonyms[name].extend(value.choices)
+                        self.choices.extend(value.choices)
+
                     self.used_synonyms.append(name)
             elif isinstance(data, list):
                 [self.load_data(x) for x in data]
             elif isinstance(data, str):
                 if '{' in data:
-                    dname = data.strip("{}?")
+                    dname = data.strip(PATTERN_RESERVED_CHARS)
                     if dname in self.intent.grammars and self.intent.grammars[dname].choices:
                         self.load_data({dname: self.intent.grammars[dname]})
                     else:

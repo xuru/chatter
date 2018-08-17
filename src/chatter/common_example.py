@@ -28,25 +28,29 @@ class CommonExample:
             entities=self.entities
         )
 
+    def process_synonyms(self, placeholder, entity):
+        if placeholder.synonym:
+            # instead of usng a set(), do this to preserve order
+            if placeholder.synonym in entity.synonyms:
+                for n in entity.synonyms[placeholder.synonym]:
+                    if n not in self.synonyms_used[placeholder.synonym]:
+                        self.synonyms_used[placeholder.synonym].append(n)
+            elif placeholder.synonym in self.parent.grammars:
+                for n in self.parent.grammars[placeholder.synonym].choices:
+                    if n not in self.synonyms_used[placeholder.synonym]:
+                        self.synonyms_used[placeholder.synonym].append(n)
+
     def process(self, parser, combination):
         self.text = parser.process(combination, self.parent.grammars)
 
-        if combination:
-            for index, name in enumerate(parser.names):
-                grammar = self.parent.grammars[name]
-                if grammar.is_entity:
-                    placeholder = parser.placeholders[index]
-                    if placeholder.synonym:
-                        # instead of usng a set(), do this to preserve order
-                        if placeholder.synonym in grammar.synonyms:
-                            for n in grammar.synonyms[placeholder.synonym]:
-                                if n not in self.synonyms_used[placeholder.synonym]:
-                                    self.synonyms_used[placeholder.synonym].append(n)
-                        elif placeholder.synonym in self.parent.grammars:
-                            for n in self.parent.grammars[placeholder.synonym].choices:
-                                if n not in self.synonyms_used[placeholder.synonym]:
-                                    self.synonyms_used[placeholder.synonym].append(n)
-                    if placeholder.synonym or placeholder.value:
-                        self.entities.append(
-                            dict(start=placeholder.start, end=placeholder.end,
-                                 value=placeholder.synonym or placeholder.value, entity=name))
+        for index, name in enumerate(parser.names):
+            placeholder = parser.placeholders[index]
+
+            if name in self.parent.entities:
+                entity = self.parent.entities[name]
+                self.process_synonyms(placeholder, entity)
+
+                if placeholder.synonym or placeholder.value:
+                    self.entities.append(
+                        dict(start=placeholder.start, end=placeholder.end,
+                             value=placeholder.synonym or placeholder.value, entity=name))

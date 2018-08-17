@@ -60,7 +60,7 @@ class TextParser:
                 try:
                     p.index_range = len(self.grammars[p.name].choices)
                 except:
-                    raise PlaceholderError()
+                    raise PlaceholderError(grammar_name=p.name, placeholder_text=self.text)
             self.names.append(p.name)
             self.placeholders.append(p)
 
@@ -80,14 +80,15 @@ class TextParser:
             choice_index = combination[index]
             p = self.placeholders[index]
             value = grammars[name].choices[choice_index]
+
             if p.optional:
                 # flip a coin
                 value = random.choice([value, ''])
 
-            if value in grammars[name].synonyms:
-                # TODO: we need a controlled way to do this
-                p.synonym = value
-                value = random.choice(grammars[name].synonyms[value])
+            for syn in grammars[name].used_synonyms:
+                if value in grammars[name].synonyms[syn]:
+                    p.synonym = syn
+                    break
             p.value = value
             p.start = text.find(p.pattern)
             p.end = p.start + len(value)

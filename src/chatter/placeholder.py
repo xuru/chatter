@@ -28,4 +28,9 @@ class PlaceHolder:
 
 def get_all_possible_values(text, grammars):
     parser = TextParser(text, grammars)
-    return [parser.process(combination, grammars) for combination in parser.combinator.get()]
+    rv = []
+    for _ in range(parser.combinator.count):
+        combination = parser.combinator.get()
+        seq = parser.process(combination, grammars)
+        rv.append(seq)
+    return rv
