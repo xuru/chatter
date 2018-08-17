@@ -162,7 +162,10 @@ class Intent:
 
         # grammars
         self.process_grammars(intent_data['grammars'])
-        self._run_down_queue()
+        try:
+            self._run_down_queue()
+        except PlaceholderError as err:
+            logger.warning(f"{err}. Seeing if it's in entities...")
         self.process_grammars(intent_data['entities'], is_entity=True)
         self._run_down_queue(is_entity=True)
 
