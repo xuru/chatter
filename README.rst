@@ -53,6 +53,12 @@ Overview
 
 A natural language generation app, for creating RASA NLU training data
 
+I want to thank `HyperGiant <https://www.hypergiant.com/>`_ for giving me the opportunity to write this software while
+working there.  If you are interested in AI, I invite you to check them out!
+
+
+License
+=======
 * Free software: MIT license
 
 Installation
