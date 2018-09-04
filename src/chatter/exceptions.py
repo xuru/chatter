@@ -3,6 +3,10 @@ class CombinationsExceededError(Exception):
     pass
 
 
+class GrammarError(Exception):
+    pass
+
+
 class PlaceholderError(Exception):
     filename: str = None
     placeholder_text: str = None

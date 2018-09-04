@@ -8,7 +8,7 @@ from collections import defaultdict, OrderedDict
 from typing import List
 
 from chatter.common_example import CommonExample
-from chatter.exceptions import PlaceholderError
+from chatter.exceptions import PlaceholderError, GrammarError
 from chatter.grammar import Grammar
 from chatter.parser import TextParser, PATTERN_RESERVED_CHARS
 
@@ -176,6 +176,11 @@ class Intent:
         for text in self.texts.available:
             self.text_parsers.append(TextParser(text, self.grammars))
             self.parser_map[text] = self.text_parsers[-1]
+
+        # special case: if the grammar list is empty, remove the placeholder from the sentence
+        dead_grammars = [name for name, grammar in self.grammars.items() if not grammar.choices]
+        if dead_grammars:
+            raise GrammarError(f"Grammars found without replacement strings: {dead_grammars}")
 
         return self
 

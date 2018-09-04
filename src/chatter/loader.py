@@ -4,7 +4,7 @@ import os
 from glob import glob
 from typing import Dict
 
-from chatter.exceptions import PlaceholderError
+from chatter.exceptions import PlaceholderError, GrammarError
 from chatter.rasa_nlu import RasaNLUIntent
 from chatter.utils.yaml import load_yaml
 
@@ -76,6 +76,8 @@ class RasaNLULoader:
                 except PlaceholderError as err:
                     err.filename = filename
                     logger.error(f"{err}. Ensure that the grammar is defined or included.")
+                except GrammarError as err:
+                    raise GrammarError(f"Error in file {filename}: {err}")
 
     def load_from_dir(self, dirname):
         # traverse root directory, and list directories as dirs and files as files
