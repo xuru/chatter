@@ -1,90 +1,58 @@
-import copy
 import json
 import logging
 import math
 import queue
-import random
-from collections import defaultdict, OrderedDict
-from typing import List
+from collections import defaultdict
 
 from chatter.common_example import CommonExample
 from chatter.exceptions import PlaceholderError, GrammarError
 from chatter.grammar import Grammar
-from chatter.parser import TextParser, PATTERN_RESERVED_CHARS
+from chatter.parser import TextParser, PATTERN_RESERVED_CHARS, Parsers
 
 logger = logging.getLogger(__name__)
-
-
-class Texts:
-    def __init__(self):
-        self.available = []
-        self.used = []
-        self.important_count = 0
-
-    @property
-    def count(self) -> int:
-        return sum(self.available + self.used)
-
-    def load(self, texts):
-        # self.domain = intent_data['domain']
-        if not texts:
-            raise RuntimeError("Need text templates to process Intents!")
-
-        for text in texts:
-            if isinstance(text, str):
-                self.available.append(copy.copy(text))
-
-            elif isinstance(text, (OrderedDict, dict)):
-                for name, value in text.items():
-                    if name == 'important':
-                        self.available[0:0] += value
-                        self.important_count += 1
-            else:
-                raise RuntimeError(f"Unknown type in 'texts' section: {text}")
-
-    def invalidate_text(self, text):
-        if text in self.available:
-            self.available.remove(text)
-            self.used.append(text)
-
-    def get(self):
-        """
-        Pick an unused text by poping it off the top of the stack
-
-        :return: str - The next unused text
-        """
-        while self.available:
-            text = self.available.pop()
-            self.used.append(text)
-            yield text
-
-    def get_used(self):
-        """
-        Randomly pick from the "used" list.
-
-        :return: str - A random text
-        """
-        if self.used:
-            return random.choice(self.used)
 
 
 class Intent:
     def __init__(self, intent_name=None):
         self.name = intent_name
         self.domain = None
-        self.texts: Texts = None
-        self.text_parsers: List[TextParser] = []
-        self.parser_map = {}
+        self.parsers: Parsers = None
         self.grammars = {}
         self.entities = {}
         self.synonyms = defaultdict(list)
         self.grammar_queue = queue.Queue()
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} {self.name} n_texts={self.texts.count}>"
+        return f"<{self.__class__.__name__} {self.name} n_texts={len(self.parsers)}>"
+
+    def load(self, intent_data):
+        # self.domain = intent_data['domain']
+        self.parsers = Parsers()
+
+        # grammars
+        self.process_grammars(intent_data['grammars'])
+        try:
+            self._run_down_queue()
+        except PlaceholderError as err:
+            logger.warning(f"{err}. Seeing if it's in entities...")
+        self.process_grammars(intent_data['entities'], is_entity=True)
+        self._run_down_queue(is_entity=True)
+
+        # Get all the synonyms
+        for grammar in self.grammars.values():
+            self.synonyms.update(grammar.synonyms)
+
+        self.parsers.load(intent_data['text'], self.grammars)
+
+        # special case: if the grammar list is empty, remove the placeholder from the sentence
+        dead_grammars = [name for name, grammar in self.grammars.items() if not grammar.choices]
+        if dead_grammars:
+            raise GrammarError(f"Grammars found without replacement strings: {dead_grammars}")
+
+        return self
 
     def get_possible_combinations(self):
-        return {parser.text: parser.possible_combinations for parser in self.text_parsers}
+        return {parser.text: parser.possible_combinations for parser in self.parsers}
 
     def get_possible_combination_count(self):
         return sum(self.get_possible_combinations().values()) or 1
@@ -92,26 +60,31 @@ class Intent:
     def get_parser_combination(self, parser: TextParser):
         rv = parser.combinator.get()
         if rv is None:
-            self.texts.invalidate_text(parser.text)
+            self.parsers.invalidate_text(parser)
             return parser.combinator.get_used()
         return rv
 
     def get_combinations(self, num):
-        # ensure that priority grammars are moved up the list
-        for parser in self.text_parsers:
-            parser.ensure_priority_combinations(num)
-
         for index in range(num):
-            text = self.choose_text()
-            parser = self.parser_map[text]
-            yield text, self.get_parser_combination(parser)
+            parser = self.choose_text()
+            try:
+                combo = self.get_parser_combination(parser)
+            except Exception as err:
+                print(err)
+
+            yield parser, combo
+
 
     def _get_minimum_num(self, num):
         if num == 0:
             num = self.get_possible_combination_count()
 
-        min_combos = sum([parser.combinator.get_min_combinations() for parser in self.text_parsers])
-        min_combos += self.texts.important_count
+        min_combos = 0
+        for parser in self.parsers:
+            min_combos += parser.combinator.get_min_combinations()
+
+        # min_combos = sum([parser.combinator.get_min_combinations() for parser in self.parsers])
+        min_combos += self.parsers.important_count
         if num < min_combos:
             logger.warning(f"Number of generated examples increased due to priority grammars to {min_combos}")
             return min_combos
@@ -119,19 +92,13 @@ class Intent:
 
     def sentences(self, num=1, combinations=None):
         num = self._get_minimum_num(num)
+        # parser_map = {}
 
         if combinations is None:
-            combinations = defaultdict(set)
-            for text, seq in self.get_combinations(num):
-                combinations[text].add(seq)
+            combinations = list(self.get_combinations(num))
 
-        for text, seqs in combinations.items():
-            if seqs:
-                for seq in seqs:
-                    parser = self.parser_map[text]
-                    yield parser.process(seq, self.grammars)
-            else:
-                yield text
+        for parser, seq in combinations:
+            yield parser.process(seq, self.grammars)
 
     def _run_down_queue(self, is_entity=False):
         retries = {}
@@ -155,35 +122,6 @@ class Intent:
                             raise err
                     self.grammar_queue.put(data)
 
-    def load(self, intent_data):
-        # self.domain = intent_data['domain']
-        self.texts = Texts()
-        self.texts.load(intent_data['text'])
-
-        # grammars
-        self.process_grammars(intent_data['grammars'])
-        try:
-            self._run_down_queue()
-        except PlaceholderError as err:
-            logger.warning(f"{err}. Seeing if it's in entities...")
-        self.process_grammars(intent_data['entities'], is_entity=True)
-        self._run_down_queue(is_entity=True)
-
-        # Get all the synonyms
-        for grammar in self.grammars.values():
-            self.synonyms.update(grammar.synonyms)
-
-        for text in self.texts.available:
-            self.text_parsers.append(TextParser(text, self.grammars))
-            self.parser_map[text] = self.text_parsers[-1]
-
-        # special case: if the grammar list is empty, remove the placeholder from the sentence
-        dead_grammars = [name for name, grammar in self.grammars.items() if not grammar.choices]
-        if dead_grammars:
-            raise GrammarError(f"Grammars found without replacement strings: {dead_grammars}")
-
-        return self
-
     def process_grammars(self, data, is_entity=False, raise_on_error=False):
         if isinstance(data, list):
             for obj in data:
@@ -192,8 +130,8 @@ class Intent:
             for name, value in data.items():
                 name = name.strip(PATTERN_RESERVED_CHARS)
                 try:
-                    # TODO: Entities with the same name will overwrite the grammar...
-                    self.grammars[name] = Grammar(name, self, is_entity)
+                    if name not in self.grammars:
+                        self.grammars[name] = Grammar(name, self, is_entity)
                     self.grammars[name].load_data(value)
 
                     if is_entity:
@@ -204,11 +142,11 @@ class Intent:
                         raise err
                     self.grammar_queue.put(data)
 
-    def choose_text(self) -> str:
+    def choose_text(self) -> TextParser:
         try:
-            return next(self.texts.get())
+            return next(self.parsers.get_text())
         except StopIteration:
-            return self.texts.get_used()
+            return self.parsers.get_used()
 
 
 class RasaNLUIntent(Intent):
@@ -223,16 +161,21 @@ class RasaNLUIntent(Intent):
         testing_count = math.ceil(num * (test_ratio / 100))
         training_count = num - testing_count
 
+        for parser in self.parsers:
+            parser.combinator.reset_combinations()
+
         if testing_count:
             logger.info(
                 f"Processing {self.name} with {num} examples ({testing_count} testing)")
 
-        for index, example in enumerate(self.examples(num)):
+        index = 0
+        for example in self.examples(num):
             self.synonyms_used.update(example.synonyms_used)
             if index >= training_count:
                 self.testing_examples.append(example)
             else:
                 self.training_examples.append(example)
+            index += 1
 
     def json(self, test=False):
         if test is True:
@@ -253,9 +196,13 @@ class RasaNLUIntent(Intent):
 
     def examples(self, num=0, combinations=None):
         num = self._get_minimum_num(num)
+        if num == 70:
+            print('bob')
         if combinations is None:
-            for text, seq in self.get_combinations(num):
-                parser = self.parser_map[text]
+            for index in range(num):
+                parser = self.choose_text()
+                seq = self.get_parser_combination(parser)
+
                 example = CommonExample(self)
                 example.process(parser, seq)
                 yield example

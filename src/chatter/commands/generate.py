@@ -27,7 +27,7 @@ def load_sentences(filename, outfile, num):
     click.secho(f"Loading...", fg='green')
     loader.load(filename)
 
-    for intent in loader.intents.values():
+    for intent in loader.intents:
         secho(f"  Generating sentences...\n", fg="green")
         with open(outfile, 'w') as fp:
             with click.progressbar(intent.training_examples, label="Generating...") as bar:

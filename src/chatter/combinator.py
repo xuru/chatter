@@ -1,35 +1,62 @@
-import itertools
 import logging
+import math
+import operator
 import random
-from random import SystemRandom
+from functools import reduce
+
+from bitarray import bitarray
 
 logger = logging.getLogger(__name__)
-cryptorand = SystemRandom()
+
+
+def _prod(numbers):
+    return reduce(operator.mul, numbers, 1)
 
 
 class Combinator:
     def __init__(self, placeholders: list):
-        self.used = []
+        self.pool = []
+        self.used = None
         self.count = 1
         self.placeholders = placeholders
         self.comb_values = []
 
         self.reset_combinations()
 
-    ################################################################################
-    # Combinations
-    ################################################################################
     def reset_combinations(self):
         """
         Rebuild the possible combinations, and make them available
 
         :return: None
         """
-        self.comb_values = []
         self.count = 1
-        for p in self.placeholders:
-            self.comb_values.append(list(range(p.index_range)))
-            self.count = self.count * p.index_range
+        self.comb_values = [p.index_range for p in self.placeholders]
+        self.count = _prod(self.comb_values)
+        self.used = bitarray(self.count)
+
+    def combination_to_index(self, combination):
+        total = 0
+        for index, combo_item in enumerate(combination):
+            if len(self.comb_values) > index + 1:
+                combo_item = combo_item * _prod(self.comb_values[index + 1:])
+            total += combo_item
+        return total
+
+    def index_to_combination(self, number):
+        # for [5,2,6], the floor of 182/4*8 = 5, the floor of (182 - 5*4*8)/8 = 2, and the remainder is 6
+        combination = []
+        prev = None
+        for index, combo_item in enumerate(self.comb_values):
+            if len(self.comb_values) > index + 1:
+                if prev is None:
+                    prev = math.floor(number / _prod(self.comb_values[index + 1:]))
+                    combination.append(prev)
+                else:
+                    prev = math.floor((number - (prev * _prod(self.comb_values[index:]))) / self.comb_values[index - 1])
+                    combination.append(prev)
+            else:
+                combination.append(number - self.combination_to_index(combination))
+        return combination
 
     def get(self):
         """
@@ -37,23 +64,35 @@ class Combinator:
 
         :return: list - The list of combination indexes
         """
-        if len(self.used) == self.count:
+        if self.used.all():
             return None
 
+        combination = [random.randint(0, p.index_range - 1) for p in self.placeholders]
+        index = self.combination_to_index(combination)
+
         miss_count = 0
-        while True:
+        # index = random.randint(0, len(self.pool) - 1)
+        while self.used[index] is True:
+            miss_count += 1
+            if miss_count > 100:
+                logger.info(f"[get] missed over 100 guesses!")
+                x = 0
+                while self.used[x] is True:
+                    x += 1
+                self.used[x] = True
+                combo = self.index_to_combination(x)
+                logger.info(f"[get] found index: {x} {combo} {self.comb_values}")
+                assert x == self.combination_to_index(combo)
+                return combo
+
             combination = [random.randint(0, p.index_range - 1) for p in self.placeholders]
-            key = tuple(combination)
-            if key not in self.used:
-                self.used.append(key)
-                return combination
-            else:
-                miss_count += 1
-                if miss_count >= 3:
-                    for combo in itertools.product(*self.comb_values):
-                        if combo not in self.used:
-                            self.used.append(combo)
-                            return combo
+            index = self.combination_to_index(combination)
+            # index = random.randint(0, len(self.pool) - 1)
+
+        self.used[index] = True
+        logger.info(f"[get] guessed index: {index} {combination} {self.comb_values}")
+        assert index == self.combination_to_index(combination)
+        return combination
 
     def get_used(self):
         """
@@ -61,9 +100,11 @@ class Combinator:
 
         :return: list - The list of combination indexes
         """
-        if self.used:
-            key = random.choice(self.used)
-            return list(key)
+        if self.used.all():
+            index = random.randint(0, self.count - 1)
+            combo = self.index_to_combination(index)
+            logger.info(f"[get_used] index: {index} {combo} {self.comb_values}")
+            return combo
 
     def get_min_combinations(self):
         """
@@ -76,37 +117,3 @@ class Combinator:
             return 1
         return total
 
-    def ensure_priorities(self, num):
-        """
-        Ensure that ALL possible values of priority placeholders are represented by the first `num` combinations.
-
-        :param num: The number of combinations requested.
-        :return: None
-        """
-        # available_combinations = self.available
-        # for priority_index, p in enumerate(self.placeholders):
-        #     if p.priority:
-        #
-        #         existing = set([x[priority_index] for x in available_combinations[:num]])
-        #         possible = set(range(p.index_range))
-        #         missing = possible - existing
-        #         logger.debug(f"  Missing: {missing} == {possible} - {existing}")
-        #         if not missing:
-        #             continue
-        #
-        #         move_list = []
-        #         table_index = len(available_combinations) - 1
-        #         while missing:
-        #             if available_combinations[table_index][priority_index] in missing:
-        #                 move_list.append(available_combinations[table_index])
-        #                 missing.remove(available_combinations[table_index][priority_index])
-        #             table_index -= 1
-        #             if table_index <= 0:
-        #                 raise RuntimeError(f"Unable to find all combinations of priorty grammar {p.name}")
-        #
-        #         for combination in move_list:
-        #             logger.debug(f"Moving: {p.name}:{priority_index} - {combination}")
-        #             available_combinations.insert(0, available_combinations.pop(available_combinations.index(combination)))
-        #
-        #         self.available = available_combinations
-        pass

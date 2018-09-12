@@ -10,6 +10,8 @@ Sphinx = ">=1.3"
 sphinx_rtd_theme = "*"
 pyyaml = "*"
 tabulate = "*"
+numpy = "*"
+bitarray = "*"
 
 [dev-packages]
 pytest = "*"

@@ -2,7 +2,6 @@ import copy
 import logging
 import os
 from glob import glob
-from typing import Dict
 
 from chatter.exceptions import PlaceholderError, GrammarError
 from chatter.rasa_nlu import RasaNLUIntent

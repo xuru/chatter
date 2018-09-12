@@ -30,7 +30,13 @@ def get_all_possible_values(text, grammars):
     parser = TextParser(text, grammars)
     rv = []
     for _ in range(parser.combinator.count):
+        if _ == 55:
+            print('bob')
         combination = parser.combinator.get()
+        if combination is None:
+            combination = parser.combinator.get_used()
+        for index, x in enumerate(combination):
+            assert x < parser.placeholders[index].index_range
         seq = parser.process(combination, grammars)
         rv.append(seq)
     return rv
